@@ -101,6 +101,41 @@ export default function DashboardLayout({
                         );
                     })}
                 </nav>
+
+                <div className="border-t border-[rgba(18,36,76,0.06)] p-3 max-md:px-2">
+                    <Link
+                        href="/profile"
+                        className={`group flex items-center gap-3 rounded-[0.75rem] px-3 py-[0.62rem] text-[0.88rem] font-medium no-underline transition-all max-md:justify-center max-md:px-0 max-md:py-3 ${pathname === "/profile"
+                            ? "bg-gradient-to-r from-[rgba(26,97,255,0.12)] to-[rgba(26,97,255,0.06)] text-[#1a61ff] shadow-[0_2px_8px_rgba(26,97,255,0.08)]"
+                            : "text-[#4a5a7a] hover:bg-[rgba(26,97,255,0.05)] hover:text-[#1a61ff]"
+                            }`}
+                    >
+                        <span className={`shrink-0 transition-colors ${pathname === "/profile" ? "text-[#1a61ff]" : "text-[#8a96ad] group-hover:text-[#1a61ff]"}`}>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-[18px] w-[18px]" aria-hidden>
+                                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                                <circle cx="12" cy="7" r="4" />
+                            </svg>
+                        </span>
+                        <span className="max-md:hidden">Profile</span>
+                    </Link>
+
+                    <button
+                        onClick={async () => {
+                            await fetch("/api/organization/logout", { method: "POST" });
+                            window.location.href = "/login";
+                        }}
+                        className="mt-1 flex w-full items-center gap-3 rounded-[0.75rem] border-none bg-transparent px-3 py-[0.62rem] text-left text-[0.88rem] font-medium text-[#4a5a7a] outline-none transition-all hover:bg-[rgba(255,71,71,0.08)] hover:text-[#ff4747] max-md:justify-center max-md:px-0 max-md:py-3"
+                    >
+                        <span className="shrink-0 text-[#8a96ad] transition-colors group-hover:text-[#ff4747]">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-[18px] w-[18px]" aria-hidden>
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                                <polyline points="16 17 21 12 16 7" />
+                                <line x1="21" y1="12" x2="9" y2="12" />
+                            </svg>
+                        </span>
+                        <span className="max-md:hidden">Logout</span>
+                    </button>
+                </div>
             </aside>
 
             <main className="flex-1 overflow-y-auto">
