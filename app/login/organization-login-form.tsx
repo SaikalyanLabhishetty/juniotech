@@ -2,6 +2,7 @@
 
 import { type ChangeEvent, type FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ACCESS_TOKEN_STORAGE_KEY } from "@/lib/client-auth";
 
 type LoginFormData = {
   email: string;
@@ -13,6 +14,7 @@ type LoginFieldErrors = Partial<Record<keyof LoginFormData, string>>;
 type LoginResponse = {
   message?: string;
   fieldErrors?: LoginFieldErrors;
+  accessToken?: string;
 };
 
 const inputClassName =
@@ -79,6 +81,10 @@ export function OrganizationLoginForm() {
           message: responseData.message || "Unable to login.",
         });
         return;
+      }
+
+      if (responseData.accessToken) {
+        localStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, responseData.accessToken);
       }
 
       setFieldErrors({});

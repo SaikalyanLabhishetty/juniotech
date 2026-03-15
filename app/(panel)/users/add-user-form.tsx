@@ -1,6 +1,7 @@
 "use client";
 
 import { type ChangeEvent, type FormEvent, useState } from "react";
+import { getAuthorizationHeader } from "@/lib/client-auth";
 
 type UserFormData = {
     name: string;
@@ -126,8 +127,10 @@ export function AddUserForm() {
 
             const response = await fetch("/api/organization/users", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                credentials: "same-origin",
+                headers: {
+                    "Content-Type": "application/json",
+                    ...getAuthorizationHeader(),
+                },
                 body: JSON.stringify(formData),
             });
 

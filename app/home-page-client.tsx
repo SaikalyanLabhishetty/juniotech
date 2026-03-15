@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import gsap from "gsap";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { SiteHeader } from "./components/site-header";
+import { getAuthorizationHeader } from "@/lib/client-auth";
 
 type HomePageClientProps = {
   initialHasAccessToken: boolean;
@@ -155,6 +156,9 @@ export function HomePageClient({ initialHasAccessToken }: HomePageClientProps) {
       try {
         const response = await fetch("/api/organization/profile", {
           cache: "no-store",
+          headers: {
+            ...getAuthorizationHeader(),
+          },
         });
 
         if (isMounted) {

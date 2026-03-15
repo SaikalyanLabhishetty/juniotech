@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 import { getDatabase } from "@/lib/mongodb";
 import { verifyAccessToken } from "@/lib/verify-access-token";
 
-export async function GET() {
+export async function GET(request: Request) {
     try {
-        const tokenPayload = await verifyAccessToken();
+        const tokenPayload = await verifyAccessToken(request);
 
         if (!tokenPayload) {
             return NextResponse.json(

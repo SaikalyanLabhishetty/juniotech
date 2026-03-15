@@ -5,7 +5,7 @@ import { verifyPassword, hashPassword } from "@/lib/organization-auth";
 
 export async function POST(request: Request) {
     try {
-        const tokenPayload = await verifyAccessToken();
+        const tokenPayload = await verifyAccessToken(request);
 
         if (!tokenPayload) {
             return NextResponse.json(

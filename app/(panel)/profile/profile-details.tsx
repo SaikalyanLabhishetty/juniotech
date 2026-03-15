@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getAuthorizationHeader } from "@/lib/client-auth";
 
 type Organization = {
     name: string;
@@ -21,7 +22,11 @@ export function ProfileDetails() {
     useEffect(() => {
         async function fetchProfile() {
             try {
-                const response = await fetch("/api/organization/profile");
+                const response = await fetch("/api/organization/profile", {
+                    headers: {
+                        ...getAuthorizationHeader(),
+                    },
+                });
                 if (!response.ok) {
                     throw new Error("Failed to fetch profile");
                 }

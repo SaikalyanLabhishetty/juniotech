@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { getAuthorizationHeader } from "@/lib/client-auth";
 
 type UserRow = {
     _id: string;
@@ -29,7 +30,11 @@ export function UsersTable({ role }: { role: "teacher" | "parent" }) {
 
             const response = await fetch(
                 `/api/organization/users?role=${role}`,
-                { credentials: "same-origin" },
+                {
+                    headers: {
+                        ...getAuthorizationHeader(),
+                    },
+                },
             );
 
             if (!response.ok) {

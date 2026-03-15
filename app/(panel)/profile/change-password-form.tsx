@@ -1,6 +1,7 @@
 "use client";
 
 import { type FormEvent, useState } from "react";
+import { getAuthorizationHeader } from "@/lib/client-auth";
 
 export function ChangePasswordForm() {
     const [currentPassword, setCurrentPassword] = useState("");
@@ -23,7 +24,10 @@ export function ChangePasswordForm() {
             setIsSubmitting(true);
             const response = await fetch("/api/organization/profile/password", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    ...getAuthorizationHeader(),
+                },
                 body: JSON.stringify({ currentPassword, newPassword }),
             });
 

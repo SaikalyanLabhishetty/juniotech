@@ -1,5 +1,4 @@
 import { createHmac } from "node:crypto";
-import { cookies } from "next/headers";
 
 type AccessTokenPayload = {
     email: string;
@@ -19,10 +18,21 @@ function getJwtSecret() {
     throw new Error("Missing JWT_SECRET in environment.");
 }
 
-export async function verifyAccessToken(): Promise<AccessTokenPayload | null> {
-    const cookieStore = await cookies();
-    const token = cookieStore.get("access_token")?.value;
+function getTokenFromAuthorizationHeader(authorizationHeader: string | null) {
+    if (!authorizationHeader) {
+        return "";
+    }
 
+    const [scheme, token] = authorizationHeader.trim().split(/\s+/, 2);
+
+    if (scheme?.toLowerCase() !== "bearer") {
+        return "";
+    }
+
+    return token?.trim() || "";
+}
+
+function validateAccessToken(token: string): AccessTokenPayload | null {
     if (!token) {
         return null;
     }
@@ -57,4 +67,13 @@ export async function verifyAccessToken(): Promise<AccessTokenPayload | null> {
     } catch {
         return null;
     }
+}
+
+export async function verifyAccessToken(
+    request?: Pick<Request, "headers">,
+): Promise<AccessTokenPayload | null> {
+    const authorizationHeader = request?.headers.get("authorization") || null;
+    const tokenFromHeader = getTokenFromAuthorizationHeader(authorizationHeader);
+
+    return validateAccessToken(tokenFromHeader);
 }

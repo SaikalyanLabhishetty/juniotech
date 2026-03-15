@@ -21,7 +21,7 @@ const COLLECTION_NAME = "users";
 
 export async function GET(request: NextRequest) {
     try {
-        const tokenPayload = await verifyAccessToken();
+        const tokenPayload = await verifyAccessToken(request);
 
         if (!tokenPayload) {
             return NextResponse.json(
@@ -93,7 +93,7 @@ function normalizeString(value: unknown) {
 
 export async function POST(request: Request) {
     try {
-        const tokenPayload = await verifyAccessToken();
+        const tokenPayload = await verifyAccessToken(request);
 
         if (!tokenPayload) {
             return NextResponse.json(

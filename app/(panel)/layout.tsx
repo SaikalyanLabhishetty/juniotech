@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { ACCESS_TOKEN_STORAGE_KEY, getAuthorizationHeader } from "@/lib/client-auth";
 
 const navItems = [
     {
@@ -43,6 +44,26 @@ const navItems = [
                 <circle cx="9" cy="7" r="4" />
                 <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
                 <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+        ),
+    },
+    {
+        label: "Academics",
+        href: "/academics",
+        icon: (
+            <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-[18px] w-[18px]"
+                aria-hidden
+            >
+                <path d="M2 7l10-4 10 4-10 4-10-4z" />
+                <path d="M6 10.5V15c0 1.4 2.7 3 6 3s6-1.6 6-3v-4.5" />
+                <path d="M22 9v6" />
             </svg>
         ),
     },
@@ -121,7 +142,13 @@ export default function DashboardLayout({
 
                     <button
                         onClick={async () => {
-                            await fetch("/api/organization/logout", { method: "POST" });
+                            await fetch("/api/organization/logout", {
+                                method: "POST",
+                                headers: {
+                                    ...getAuthorizationHeader(),
+                                },
+                            });
+                            localStorage.removeItem(ACCESS_TOKEN_STORAGE_KEY);
                             window.location.href = "/login";
                         }}
                         className="mt-1 flex w-full items-center gap-3 rounded-[0.75rem] border-none bg-transparent px-3 py-[0.62rem] text-left text-[0.88rem] font-medium text-[#4a5a7a] outline-none transition-all hover:bg-[rgba(255,71,71,0.08)] hover:text-[#ff4747] max-md:justify-center max-md:px-0 max-md:py-3"
