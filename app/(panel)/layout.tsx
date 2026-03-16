@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ACCESS_TOKEN_STORAGE_KEY, getAuthorizationHeader } from "@/lib/client-auth";
+import { SiteHeader } from "../components/site-header";
 
 const navItems = [
     {
@@ -75,6 +76,17 @@ export default function DashboardLayout({
     children: React.ReactNode;
 }>) {
     const pathname = usePathname();
+
+    const routeTitles: Record<string, { title: string; subtitle: string }> = {
+        "/dashboard": { title: "Overview", subtitle: "Welcome back. Here is your organization's summary." },
+        "/users": { title: "Users", subtitle: "Add and manage teachers and parents in your organization." },
+        "/profile": { title: "Organization Profile", subtitle: "Manage your organization settings and security." },
+        "/academics": { title: "Academics", subtitle: "Manage classes, subjects, and academic terms." },
+    };
+
+    const currentRouteInfo = Object.entries(routeTitles).find(([route]) =>
+        pathname === route || pathname.startsWith(`${route}/`)
+    )?.[1] || { title: "Organization Panel", subtitle: "" };
 
     return (
         <div className="flex min-h-screen bg-gradient-to-br from-[#edf3ff] via-[#f8fbff] to-[#eef7ff]">
@@ -155,7 +167,7 @@ export default function DashboardLayout({
                     >
                         <span className="shrink-0 text-[#8a96ad] transition-colors group-hover:text-[#ff4747]">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-[18px] w-[18px]" aria-hidden>
-                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1-2-2h4" />
                                 <polyline points="16 17 21 12 16 7" />
                                 <line x1="21" y1="12" x2="9" y2="12" />
                             </svg>
@@ -165,7 +177,12 @@ export default function DashboardLayout({
                 </div>
             </aside>
 
-            <main className="flex-1 overflow-y-auto">
+            <main className="flex-1">
+                <SiteHeader
+                    showAction={false}
+                    title={currentRouteInfo.title}
+                    subtitle={currentRouteInfo.subtitle}
+                />
                 <div className="mx-auto w-full max-w-[1100px] px-6 py-8 lg:px-10">
                     {children}
                 </div>

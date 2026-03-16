@@ -4,16 +4,7 @@ import { ChangePasswordForm } from "./change-password-form";
 export default function ProfilePage() {
     return (
         <>
-            <div className="mb-8">
-                <h1 className="text-[clamp(1.8rem,3.5vw,2.4rem)] font-semibold tracking-[-0.03em] text-[#0f1f3a]">
-                    Organization Profile
-                </h1>
-                <p className="mt-1 text-sm leading-6 text-[#60708d]">
-                    Manage your organization settings and security.
-                </p>
-            </div>
-
-            <div className="space-y-8">
+            <div className="space-y-8 mt-6">
                 <section className="rounded-[1.5rem] border border-[rgba(18,36,76,0.08)] bg-white/90 p-6 shadow-[0_16px_40px_rgba(16,32,68,0.06)] backdrop-blur-[6px] sm:p-8">
                     <div className="mb-6 flex items-center gap-3">
                         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[rgba(26,97,255,0.08)] text-[#1a61ff]">
