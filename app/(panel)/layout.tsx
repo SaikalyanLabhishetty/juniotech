@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { LayoutDashboard, GraduationCap, Users, UserRound, LogOut, Settings } from "lucide-react";
 import { ACCESS_TOKEN_STORAGE_KEY, getAuthorizationHeader } from "@/lib/client-auth";
 import { SiteHeader } from "../components/site-header";
 
@@ -9,84 +10,22 @@ const navItems = [
     {
         label: "Dashboard",
         href: "/dashboard",
-        icon: (
-            <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="h-[18px] w-[18px]"
-                aria-hidden
-            >
-                <rect x="3" y="3" width="7" height="7" rx="1.5" />
-                <rect x="14" y="3" width="7" height="7" rx="1.5" />
-                <rect x="3" y="14" width="7" height="7" rx="1.5" />
-                <rect x="14" y="14" width="7" height="7" rx="1.5" />
-            </svg>
-        ),
+        icon: <LayoutDashboard size={18} strokeWidth={2} />,
     },
     {
         label: "Classes",
         href: "/classes",
-        icon: (
-            <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="h-[18px] w-[18px]"
-                aria-hidden
-            >
-                <path d="M2 7l10-4 10 4-10 4-10-4z" />
-                <path d="M6 10.5V15c0 1.4 2.7 3 6 3s6-1.6 6-3v-4.5" />
-                <path d="M22 9v6" />
-            </svg>
-        ),
+        icon: <GraduationCap size={18} strokeWidth={2} />,
     },
     {
         label: "Teachers",
         href: "/teachers",
-        icon: (
-            <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="h-[18px] w-[18px]"
-                aria-hidden
-            >
-                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                <circle cx="9" cy="7" r="4" />
-                <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-            </svg>
-        ),
+        icon: <Users size={18} strokeWidth={2} />,
     },
     {
         label: "Students",
         href: "/students",
-        icon: (
-            <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="h-[18px] w-[18px]"
-                aria-hidden
-            >
-                <path d="M2 7l10-4 10 4-10 4-10-4z" />
-                <path d="M6 10.5V15c0 1.4 2.7 3 6 3s6-1.6 6-3v-4.5" />
-                <path d="M22 9v6" />
-            </svg>
-        ),
+        icon: <UserRound size={18} strokeWidth={2} />,
     },
 ];
 
@@ -110,8 +49,8 @@ export default function DashboardLayout({
     )?.[1] || { title: "Organization Panel", subtitle: "" };
 
     return (
-        <div className="flex min-h-screen bg-gradient-to-br from-[#edf3ff] via-[#f8fbff] to-[#eef7ff]">
-            <aside className="sticky top-0 flex h-screen w-[250px] shrink-0 flex-col border-r border-[rgba(18,36,76,0.08)] bg-white/80 backdrop-blur-[10px] max-md:w-[72px]">
+        <div className="flex min-h-screen">
+            <aside className="sticky top-0 flex h-screen w-[260px] shrink-0 flex-col border-r border-[rgba(18,36,76,0.06)] bg-white/70 backdrop-blur-[12px] max-md:w-[72px]">
                 <div className="flex h-[64px] items-center gap-3 border-b border-[rgba(18,36,76,0.06)] px-5 max-md:justify-center max-md:px-0">
                     <div className="grid h-[2.2rem] w-[2.2rem] shrink-0 place-content-center rounded-[0.7rem] bg-gradient-to-br from-[#1a61ff] to-[#6c8eff] text-sm font-semibold text-white shadow-[0_8px_16px_rgba(26,97,255,0.25)]">
                         J
@@ -165,10 +104,7 @@ export default function DashboardLayout({
                             }`}
                     >
                         <span className={`shrink-0 transition-colors ${pathname === "/profile" ? "text-[#1a61ff]" : "text-[#8a96ad] group-hover:text-[#1a61ff]"}`}>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-[18px] w-[18px]" aria-hidden>
-                                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-                                <circle cx="12" cy="7" r="4" />
-                            </svg>
+                            <Settings size={18} strokeWidth={2} />
                         </span>
                         <span className="max-md:hidden">Profile</span>
                     </Link>
@@ -187,11 +123,7 @@ export default function DashboardLayout({
                         className="mt-1 flex w-full items-center gap-3 rounded-[0.75rem] border-none bg-transparent px-3 py-[0.62rem] text-left text-[0.88rem] font-medium text-[#4a5a7a] outline-none transition-all hover:bg-[rgba(255,71,71,0.08)] hover:text-[#ff4747] max-md:justify-center max-md:px-0 max-md:py-3"
                     >
                         <span className="shrink-0 text-[#8a96ad] transition-colors group-hover:text-[#ff4747]">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-[18px] w-[18px]" aria-hidden>
-                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1-2-2h4" />
-                                <polyline points="16 17 21 12 16 7" />
-                                <line x1="21" y1="12" x2="9" y2="12" />
-                            </svg>
+                            <LogOut size={18} strokeWidth={2} />
                         </span>
                         <span className="max-md:hidden">Logout</span>
                     </button>

@@ -428,7 +428,7 @@ export function ClassesForm() {
 
             {mode === "single" ? (
                 <div className="grid gap-5 sm:grid-cols-2">
-                    <label className="block text-sm font-medium text-[#243552]">
+                    <label className="block text-[0.82rem] font-bold tracking-tight text-[#4a5a7a]">
                         Class Name
                         <input
                             className={inputClassName}
@@ -444,7 +444,7 @@ export function ClassesForm() {
                         ) : null}
                     </label>
 
-                    <label className="block text-sm font-medium text-[#243552]">
+                    <label className="block text-[0.82rem] font-bold tracking-tight text-[#4a5a7a]">
                         Section
                         <input
                             className={inputClassName}
@@ -461,7 +461,7 @@ export function ClassesForm() {
                         ) : null}
                     </label>
 
-                    <label className="block text-sm font-medium text-[#243552] sm:col-span-2">
+                    <label className="block text-[0.82rem] font-bold tracking-tight text-[#4a5a7a] sm:col-span-2">
                         Academic Year
                         <input
                             className={inputClassName}
@@ -479,8 +479,8 @@ export function ClassesForm() {
                 </div>
             ) : (
                 <div className="grid gap-5 sm:grid-cols-2">
-                    <label className="block text-sm font-medium text-[#243552]">
-                        How Many Classes?
+                    <label className="block text-[0.82rem] font-bold tracking-tight text-[#4a5a7a]">
+                        Number of Classes
                         <input
                             className={inputClassName}
                             name="count"
@@ -494,13 +494,13 @@ export function ClassesForm() {
                         {fieldErrors.count ? (
                             <p className={errorTextClassName}>{fieldErrors.count}</p>
                         ) : (
-                            <p className="mt-2 text-xs text-[#6b7a96]">
+                            <p className="mt-2 text-[0.7rem] font-medium text-[#8a96ad]">
                                 For now, bulk add supports one class with multiple sections.
                             </p>
                         )}
                     </label>
 
-                    <label className="block text-sm font-medium text-[#243552]">
+                    <label className="block text-[0.82rem] font-bold tracking-tight text-[#4a5a7a]">
                         Class Name
                         <input
                             className={inputClassName}
@@ -516,7 +516,7 @@ export function ClassesForm() {
                         ) : null}
                     </label>
 
-                    <label className="block text-sm font-medium text-[#243552] sm:col-span-2">
+                    <label className="block text-[0.82rem] font-bold tracking-tight text-[#4a5a7a] sm:col-span-2">
                         Sections (Press Enter to add)
                         <input
                             className={inputClassName}
@@ -529,20 +529,23 @@ export function ClassesForm() {
                             placeholder="Example: 1A, 1B, 1C"
                         />
                         {bulkFormData.sections.length > 0 ? (
-                            <div className="mt-3 flex flex-wrap gap-2">
+                            <div className="mt-4 flex flex-wrap gap-2">
                                 {bulkFormData.sections.map((section) => (
                                     <span
                                         key={section}
-                                        className="inline-flex items-center gap-2 rounded-full bg-[#eef4ff] px-3 py-1 text-xs font-semibold text-[#1a61ff]"
+                                        className="inline-flex items-center gap-2 rounded-xl bg-[rgba(26,97,255,0.08)] border border-[rgba(26,97,255,0.12)] px-3 py-1.5 text-[0.75rem] font-bold text-[#1a61ff]"
                                     >
                                         {section}
                                         <button
                                             type="button"
                                             onClick={() => removeBulkSection(section)}
-                                            className="text-[#1a61ff] transition hover:text-[#0f3ea6]"
+                                            className="ml-1 flex h-4 w-4 items-center justify-center rounded-full bg-[rgba(26,97,255,0.1)] text-[#1a61ff] transition hover:bg-[rgba(255,71,71,0.1)] hover:text-[#ff4747]"
                                             aria-label={`Remove ${section}`}
                                         >
-                                            ×
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="h-2.5 w-2.5">
+                                                <line x1="18" y1="6" x2="6" y2="18" />
+                                                <line x1="6" y1="6" x2="18" y2="18" />
+                                            </svg>
                                         </button>
                                     </span>
                                 ))}
@@ -553,7 +556,7 @@ export function ClassesForm() {
                         ) : null}
                     </label>
 
-                    <label className="block text-sm font-medium text-[#243552] sm:col-span-2">
+                    <label className="block text-[0.82rem] font-bold tracking-tight text-[#4a5a7a] sm:col-span-2">
                         Academic Year
                         <input
                             className={inputClassName}
@@ -571,32 +574,53 @@ export function ClassesForm() {
                 </div>
             )}
 
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+            <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center sm:justify-end">
                 <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="inline-flex items-center justify-center rounded-full bg-[#1a61ff] px-6 py-3 text-sm font-semibold text-white shadow-[0_14px_28px_rgba(26,97,255,0.28)] transition hover:-translate-y-px hover:bg-[#114fe0] disabled:cursor-not-allowed disabled:bg-[#7aa5ff] disabled:shadow-none"
+                    className="group relative inline-flex items-center justify-center overflow-hidden rounded-full bg-[#1a61ff] px-8 py-3.5 text-xs font-bold text-white shadow-[0_12px_24px_rgba(26,97,255,0.25)] transition-all hover:-translate-y-0.5 hover:bg-[#114fe0] hover:shadow-[0_18px_32px_rgba(26,97,255,0.3)] disabled:cursor-not-allowed disabled:bg-[#7aa5ff] disabled:shadow-none"
                 >
-                    {isSubmitting
-                        ? mode === "single"
-                            ? "Creating..."
-                            : "Creating..."
-                        : mode === "single"
-                            ? "Create Class"
-                            : "Create Classes"}
+                    <span className="relative z-10 flex items-center gap-2">
+                        {isSubmitting ? (
+                            <>
+                                <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+                                Processing...
+                            </>
+                        ) : (
+                            <>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5 transition-transform group-hover:scale-110">
+                                    <path d="M12 5v14M5 12h14" />
+                                </svg>
+                                {mode === "single" ? "Create Class" : "Create Classes"}
+                            </>
+                        )}
+                    </span>
                 </button>
             </div>
 
             {status.message ? (
-                <p
-                    className={`rounded-2xl border px-4 py-3 text-sm ${status.tone === "error"
+                <div
+                    className={`rounded-2xl border px-5 py-4 text-[0.85rem] font-medium transition-all animate-in fade-in slide-in-from-top-2 ${status.tone === "error"
                         ? "border-[#f3c3c3] bg-[#fff5f5] text-[#a23232]"
                         : "border-[#bddfc7] bg-[#f3fff6] text-[#20683c]"
                         }`}
                     aria-live="polite"
                 >
-                    {status.message}
-                </p>
+                    <div className="flex items-center gap-2.5">
+                        {status.tone === "error" ? (
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 shrink-0">
+                                <circle cx="12" cy="12" r="10" />
+                                <line x1="12" y1="8" x2="12" y2="12" />
+                                <line x1="12" y1="16" x2="12.01" y2="16" />
+                            </svg>
+                        ) : (
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 shrink-0">
+                                <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                        )}
+                        {status.message}
+                    </div>
+                </div>
             ) : null}
         </form>
     );

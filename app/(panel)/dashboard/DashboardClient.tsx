@@ -11,6 +11,7 @@ import {
     Tooltip,
     ResponsiveContainer,
 } from "recharts";
+import { Users, UserPlus, GraduationCap, TrendingUp } from "lucide-react";
 
 import { getAuthorizationHeader } from "@/lib/client-auth";
 
@@ -75,44 +76,23 @@ export default function DashboardClient() {
         {
             title: "Total Teachers",
             value: stats.totalTeachers,
-            bgColor: "bg-blue-50",
+            bgColor: "bg-blue-50/50",
             iconColor: "text-blue-600",
-            iconPath: (
-                <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 14l9-5-9-5-9 5 9 5z M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"
-                />
-            ),
+            icon: <Users size={28} />,
         },
         {
             title: "Total Parents",
             value: stats.totalParents,
-            bgColor: "bg-indigo-50",
+            bgColor: "bg-indigo-50/50",
             iconColor: "text-indigo-600",
-            iconPath: (
-                <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                />
-            ),
+            icon: <UserPlus size={28} />,
         },
         {
             title: "Total Students",
             value: stats.totalStudents,
-            bgColor: "bg-emerald-50",
+            bgColor: "bg-emerald-50/50",
             iconColor: "text-emerald-600",
-            iconPath: (
-                <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
-                />
-            ),
+            icon: <GraduationCap size={28} />,
         },
     ];
 
@@ -134,16 +114,9 @@ export default function DashboardClient() {
                         className="group flex items-center gap-6 overflow-hidden rounded-2xl border border-[#e2e8f0] bg-white p-6 shadow-sm transition-all hover:shadow-md"
                     >
                         <div
-                            className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl ${card.bgColor}`}
+                            className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl transition-transform group-hover:scale-110 group-hover:rotate-3 ${card.bgColor} ${card.iconColor}`}
                         >
-                            <svg
-                                className={`h-8 w-8 ${card.iconColor}`}
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                            >
-                                {card.iconPath}
-                            </svg>
+                            {card.icon}
                         </div>
                         <div>
                             <p className="text-sm font-medium text-[#60708d]">
@@ -161,8 +134,8 @@ export default function DashboardClient() {
             <motion.div
                 initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.4, duration: 0.5 }}
-                className="rounded-2xl border border-[#e2e8f0] bg-white p-6 shadow-sm sm:p-8"
+                transition={{ delay: 0.4, duration: 0.6 }}
+                className="rounded-3xl border border-[rgba(18,36,76,0.06)] bg-white/70 p-6 shadow-[0_8px_32px_rgba(18,36,76,0.04)] backdrop-blur-[12px] sm:p-8"
             >
                 <div className="mb-6 flex flex-col gap-2">
                     <h2 className="text-xl font-bold text-[#0f1f3a]">
