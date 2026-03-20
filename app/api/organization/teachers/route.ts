@@ -66,8 +66,19 @@ function formatDobPassword(value: string) {
         return `${isoMatch[3]}${isoMatch[2]}${isoMatch[1]}`;
     }
 
+    const dmyMatch = trimmed.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/);
+    if (dmyMatch) {
+        const day = dmyMatch[1].padStart(2, "0");
+        const month = dmyMatch[2].padStart(2, "0");
+        return `${day}${month}${dmyMatch[3]}`;
+    }
+
     const digits = trimmed.replace(/\D/g, "");
     if (digits.length === 8) {
+        if (/^(19|20)\d{6}$/.test(digits)) {
+            return `${digits.slice(6, 8)}${digits.slice(4, 6)}${digits.slice(0, 4)}`;
+        }
+
         return digits;
     }
 
