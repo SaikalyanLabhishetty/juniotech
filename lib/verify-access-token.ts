@@ -4,6 +4,8 @@ type AccessTokenPayload = {
     email: string;
     uid: string;
     schoolId?: string;
+    userUid?: string;
+    role?: "organization" | "teacher" | "parent";
     exp: number;
 };
 
@@ -60,7 +62,24 @@ function validateAccessToken(token: string): AccessTokenPayload | null {
             Buffer.from(encodedPayload, "base64url").toString("utf8"),
         ) as AccessTokenPayload;
 
+        if (typeof payload.email !== "string" || typeof payload.uid !== "string") {
+            return null;
+        }
+
         if (payload.schoolId && typeof payload.schoolId !== "string") {
+            return null;
+        }
+
+        if (payload.userUid && typeof payload.userUid !== "string") {
+            return null;
+        }
+
+        if (
+            payload.role &&
+            payload.role !== "organization" &&
+            payload.role !== "teacher" &&
+            payload.role !== "parent"
+        ) {
             return null;
         }
 

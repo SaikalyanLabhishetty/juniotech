@@ -74,6 +74,7 @@ export async function POST(request: Request) {
       email: organization.email,
       uid: organization.uid,
       schoolId: schoolId || undefined,
+      role: "organization",
     });
 
     const response = NextResponse.json(

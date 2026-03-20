@@ -6,6 +6,7 @@ import {
 } from "node:crypto";
 
 const SCRYPT_KEY_LENGTH = 64;
+type AccessTokenRole = "organization" | "teacher" | "parent";
 
 function parseExpiresIn(value: string | undefined): number {
   if (!value) return 60 * 60 * 24 * 7; // default 7 days
@@ -67,14 +68,19 @@ export function createAccessToken(payload: {
   email: string;
   uid: string;
   schoolId?: string;
+  userUid?: string;
+  role?: AccessTokenRole;
 }) {
   const expiresAt = Math.floor(Date.now() / 1000) + ACCESS_TOKEN_TTL_SECONDS;
   const normalizedSchoolId = payload.schoolId?.trim() || "";
+  const normalizedUserUid = payload.userUid?.trim() || "";
   const tokenPayload: {
     email: string;
     exp: number;
     uid: string;
     schoolId?: string;
+    userUid?: string;
+    role?: AccessTokenRole;
   } = {
     email: payload.email,
     exp: expiresAt,
@@ -83,6 +89,14 @@ export function createAccessToken(payload: {
 
   if (normalizedSchoolId) {
     tokenPayload.schoolId = normalizedSchoolId;
+  }
+
+  if (normalizedUserUid) {
+    tokenPayload.userUid = normalizedUserUid;
+  }
+
+  if (payload.role) {
+    tokenPayload.role = payload.role;
   }
 
   const encodedPayload = Buffer.from(

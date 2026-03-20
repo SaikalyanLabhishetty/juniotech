@@ -100,6 +100,7 @@ export async function POST(request: Request) {
             email: organizationEmail || tokenPayload.email,
             uid: organization.uid,
             schoolId: requestedSchoolId,
+            role: "organization",
         });
 
         const response = NextResponse.json(

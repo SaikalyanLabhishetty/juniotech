@@ -4,6 +4,7 @@ import {
   createAccessToken,
   verifyPassword,
 } from "@/lib/organization-auth";
+import { buildSchoolScopeQuery } from "@/lib/organization-school";
 import { getDatabase } from "@/lib/mongodb";
 
 type LoginPayload = {
@@ -27,7 +28,17 @@ type UserDocument = {
   updatedAt: string;
 };
 
+type StudentDocument = {
+  uid: string;
+  name: string;
+  parentId: string;
+  organizationId: string;
+  schoolId?: string;
+  createdAt: string;
+};
+
 const COLLECTION_NAME = "users";
+const STUDENTS_COLLECTION_NAME = "students";
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const phonePattern = /^\d{10}$/;
 
@@ -80,10 +91,35 @@ export async function POST(request: Request) {
 
     // Use organizationId as the token uid so all protected org-scoped routes work correctly.
     const schoolId = normalizeString(user.schoolId);
+    let parentStudent: Pick<StudentDocument, "uid" | "name"> | null = null;
+
+    if (user.role === "parent") {
+      const studentsCollection =
+        database.collection<StudentDocument>(STUDENTS_COLLECTION_NAME);
+      parentStudent = await studentsCollection.findOne(
+        {
+          parentId: user.uid,
+          organizationId: user.organizationId,
+          ...buildSchoolScopeQuery(schoolId),
+        },
+        {
+          projection: {
+            uid: 1,
+            name: 1,
+          },
+          sort: {
+            createdAt: -1,
+          },
+        },
+      );
+    }
+
     const accessToken = createAccessToken({
       email: user.email,
       uid: user.organizationId,
       schoolId: schoolId || undefined,
+      userUid: user.uid,
+      role: user.role,
     });
 
     const response = NextResponse.json(
@@ -96,6 +132,12 @@ export async function POST(request: Request) {
           organizationId: user.organizationId,
           role: user.role,
           uid: user.uid,
+          ...(user.role === "parent"
+            ? {
+                student_name: parentStudent?.name ?? "",
+                student_uid: parentStudent?.uid ?? "",
+              }
+            : {}),
         },
       },
       { status: 200 },

@@ -5,6 +5,8 @@ export type AccessTokenPayload = {
     email: string;
     uid: string;
     schoolId?: string;
+    userUid?: string;
+    role?: "organization" | "teacher" | "parent";
     exp: number;
 };
 
@@ -55,6 +57,19 @@ export function decodeAccessTokenPayload(
         }
 
         if (payload.schoolId && typeof payload.schoolId !== "string") {
+            return null;
+        }
+
+        if (payload.userUid && typeof payload.userUid !== "string") {
+            return null;
+        }
+
+        if (
+            payload.role &&
+            payload.role !== "organization" &&
+            payload.role !== "teacher" &&
+            payload.role !== "parent"
+        ) {
             return null;
         }
 
