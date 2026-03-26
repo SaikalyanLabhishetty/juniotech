@@ -32,6 +32,11 @@ type BulkUploadResponse = {
     }>;
 };
 
+type PublicSheetResponse = {
+    message?: string;
+    csvText?: string;
+};
+
 type OrganizationProfileResponse = {
     message?: string;
     organization?: {
@@ -236,6 +241,7 @@ export function TeachersUploadCsv() {
     const [isClient, setIsClient] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [file, setFile] = useState<File | null>(null);
+    const [googleSheetUrl, setGoogleSheetUrl] = useState("");
     const [isUploading, setIsUploading] = useState(false);
     const [fileInputKey, setFileInputKey] = useState(0);
     const [status, setStatus] = useState<{ tone: "idle" | "error" | "success"; message: string }>({
@@ -247,8 +253,6 @@ export function TeachersUploadCsv() {
         total: 0,
     });
     const [errorRows, setErrorRows] = useState<UploadError[]>([]);
-
-    const hasErrors = errorRows.length > 0;
 
     useEffect(() => {
         setIsClient(true);
@@ -265,21 +269,13 @@ export function TeachersUploadCsv() {
         triggerTextFileDownload("teachers-sample.csv", sampleCsv, "text/csv;charset=utf-8");
     };
 
-    const downloadErrorCsv = () => {
-        if (!hasErrors) {
-            return;
-        }
-
-        const content = createErrorCsv(errorRows);
-        triggerTextFileDownload("teachers-upload-errors.csv", content, "text/csv;charset=utf-8");
-    };
-
     const closeModal = () => {
         if (isUploading) {
             return;
         }
 
         setFile(null);
+        setGoogleSheetUrl("");
         setStatus({ tone: "idle", message: "" });
         setBatchProgress({ current: 0, total: 0 });
         setErrorRows([]);
@@ -287,20 +283,14 @@ export function TeachersUploadCsv() {
         setIsModalOpen(false);
     };
 
-    const uploadCsv = async () => {
-        if (!file) {
-            setStatus({ tone: "error", message: "Select a CSV file first." });
-            return;
-        }
+    const processCsvContent = async (csvContent: string) => {
+        setIsUploading(true);
+        setStatus({ tone: "idle", message: "" });
+        setBatchProgress({ current: 0, total: 0 });
+        setErrorRows([]);
 
         try {
-            setIsUploading(true);
-            setStatus({ tone: "idle", message: "" });
-            setBatchProgress({ current: 0, total: 0 });
-            setErrorRows([]);
-
-            const [csvContent, classesResponse, profileResponse] = await Promise.all([
-                file.text(),
+            const [classesResponse, profileResponse] = await Promise.all([
                 fetch("/api/organization/classes", {
                     headers: {
                         ...getAuthorizationHeader(),
@@ -397,125 +387,57 @@ export function TeachersUploadCsv() {
                     .filter(Boolean);
 
                 if (!name) {
-                    upfrontErrors.push({
-                        rowNumber: rowIndex + 1,
-                        lineNumber: row.lineNumber,
-                        column: "name",
-                        message: "Name is required.",
-                        value: name,
-                    });
+                    upfrontErrors.push({ rowNumber: rowIndex + 1, lineNumber: row.lineNumber, column: "name", message: "Name is required.", value: name });
                 }
-
                 if (!phone) {
-                    upfrontErrors.push({
-                        rowNumber: rowIndex + 1,
-                        lineNumber: row.lineNumber,
-                        column: "phone",
-                        message: "Phone is required.",
-                        value: phone,
-                    });
+                    upfrontErrors.push({ rowNumber: rowIndex + 1, lineNumber: row.lineNumber, column: "phone", message: "Phone is required.", value: phone });
                 }
-
                 if (!dob) {
-                    upfrontErrors.push({
-                        rowNumber: rowIndex + 1,
-                        lineNumber: row.lineNumber,
-                        column: "dob",
-                        message: "DOB is required.",
-                        value: dob,
-                    });
+                    upfrontErrors.push({ rowNumber: rowIndex + 1, lineNumber: row.lineNumber, column: "dob", message: "DOB is required.", value: dob });
                 }
-
                 if (classValues.length === 0) {
-                    upfrontErrors.push({
-                        rowNumber: rowIndex + 1,
-                        lineNumber: row.lineNumber,
-                        column: "classes",
-                        message: "At least one class is required.",
-                        value: row.values.classes || "",
-                    });
+                    upfrontErrors.push({ rowNumber: rowIndex + 1, lineNumber: row.lineNumber, column: "classes", message: "At least one class is required.", value: row.values.classes || "" });
                 } else if (classIds.length !== classValues.length) {
                     const invalidClass = classValues.find((classLabel) => !classesMap.has(classLabel)) || "";
-                    upfrontErrors.push({
-                        rowNumber: rowIndex + 1,
-                        lineNumber: row.lineNumber,
-                        column: "classes",
-                        message: `Class not found: ${invalidClass}`,
-                        value: row.values.classes || "",
-                    });
+                    upfrontErrors.push({ rowNumber: rowIndex + 1, lineNumber: row.lineNumber, column: "classes", message: `Class not found: ${invalidClass}`, value: row.values.classes || "" });
                 }
-
                 if (schoolSubjectSet.size > 0) {
                     const invalidSubject = sourceSubjectValues.find(
                         (subject) => !schoolSubjectMap.has(subject.toLowerCase()),
                     );
 
                     if (invalidSubject) {
-                        upfrontErrors.push({
-                            rowNumber: rowIndex + 1,
-                            lineNumber: row.lineNumber,
-                            column: "subjects",
-                            message: `Subject not configured for school: ${invalidSubject}`,
-                            value: row.values.subjects || "",
-                        });
+                        upfrontErrors.push({ rowNumber: rowIndex + 1, lineNumber: row.lineNumber, column: "subjects", message: `Subject not configured for school: ${invalidSubject}`, value: row.values.subjects || "" });
                     }
                 }
 
-                const classTeacherClassId = classTeacherClass
-                    ? classesMap.get(classTeacherClass) || ""
-                    : "";
+                const classTeacherClassId = classTeacherClass ? classesMap.get(classTeacherClass) || "" : "";
 
                 if (isClassTeacher && !classTeacherClass) {
-                    upfrontErrors.push({
-                        rowNumber: rowIndex + 1,
-                        lineNumber: row.lineNumber,
-                        column: "classTeacherClass",
-                        message: "Class teacher class is required when isClassTeacher is true.",
-                        value: row.values.classteacherclass || "",
-                    });
+                    upfrontErrors.push({ rowNumber: rowIndex + 1, lineNumber: row.lineNumber, column: "classTeacherClass", message: "Class teacher class is required when isClassTeacher is true.", value: row.values.classteacherclass || "" });
                 }
-
                 if (classTeacherClass && !classTeacherClassId) {
-                    upfrontErrors.push({
-                        rowNumber: rowIndex + 1,
-                        lineNumber: row.lineNumber,
-                        column: "classTeacherClass",
-                        message: `Class not found: ${classTeacherClass}`,
-                        value: row.values.classteacherclass || "",
-                    });
+                    upfrontErrors.push({ rowNumber: rowIndex + 1, lineNumber: row.lineNumber, column: "classTeacherClass", message: `Class not found: ${classTeacherClass}`, value: row.values.classteacherclass || "" });
                 }
 
-                const hasRowError = upfrontErrors.some(
-                    (error) => error.rowNumber === rowIndex + 1,
-                );
+                const hasRowError = upfrontErrors.some((error) => error.rowNumber === rowIndex + 1);
 
                 if (hasRowError) {
                     return [];
                 }
 
-                return [
-                    {
-                        rowNumber: rowIndex + 1,
-                        lineNumber: row.lineNumber,
-                        source: row.values,
-                        payload: {
-                            name,
-                            phone,
-                            dob,
-                            classIds,
-                            classTeacherClassId,
-                            subjects: subjectValues,
-                            isClassTeacher,
-                        },
-                    },
-                ];
+                return [{
+                    rowNumber: rowIndex + 1,
+                    lineNumber: row.lineNumber,
+                    source: row.values,
+                    payload: { name, phone, dob, classIds, classTeacherClassId, subjects: subjectValues, isClassTeacher },
+                }];
             });
 
             const BATCH_SIZE = 50;
             const batches = Array.from(
                 { length: Math.ceil(preparedTeachers.length / BATCH_SIZE) },
-                (_, index) =>
-                    preparedTeachers.slice(index * BATCH_SIZE, (index + 1) * BATCH_SIZE),
+                (_, index) => preparedTeachers.slice(index * BATCH_SIZE, (index + 1) * BATCH_SIZE),
             );
 
             setBatchProgress({ current: 0, total: batches.length });
@@ -533,32 +455,20 @@ export function TeachersUploadCsv() {
                         "Content-Type": "application/json",
                         ...getAuthorizationHeader(),
                     },
-                    body: JSON.stringify({
-                        teachers: batch.map((teacher) => teacher.payload),
-                    }),
+                    body: JSON.stringify({ teachers: batch.map((teacher) => teacher.payload) }),
                 });
 
                 const bulkResponseBody = (await bulkResponse.json()) as BulkUploadResponse;
 
                 if (!bulkResponse.ok || !Array.isArray(bulkResponseBody.results)) {
                     batch.forEach((teacher) => {
-                        uploadErrors.push({
-                            rowNumber: teacher.rowNumber,
-                            lineNumber: teacher.lineNumber,
-                            column: "",
-                            message:
-                                bulkResponseBody.message ||
-                                "Bulk upload failed for this batch.",
-                            value: "",
-                        });
+                        uploadErrors.push({ rowNumber: teacher.rowNumber, lineNumber: teacher.lineNumber, column: "", message: bulkResponseBody.message || "Bulk upload failed for this batch.", value: "" });
                     });
                     continue;
                 }
 
                 batch.forEach((teacher, batchRowIndex) => {
-                    const result = bulkResponseBody.results?.find(
-                        (item) => item.index === batchRowIndex,
-                    );
+                    const result = bulkResponseBody.results?.find((item) => item.index === batchRowIndex);
 
                     if (result?.success) {
                         successCount += 1;
@@ -568,16 +478,7 @@ export function TeachersUploadCsv() {
                     const errorEntries = Object.entries(result?.fieldErrors || {});
 
                     if (errorEntries.length === 0) {
-                        uploadErrors.push({
-                            rowNumber: teacher.rowNumber,
-                            lineNumber: teacher.lineNumber,
-                            column: "",
-                            message:
-                                result?.message ||
-                                bulkResponseBody.message ||
-                                "Unknown error while creating teacher.",
-                            value: "",
-                        });
+                        uploadErrors.push({ rowNumber: teacher.rowNumber, lineNumber: teacher.lineNumber, column: "", message: result?.message || bulkResponseBody.message || "Unknown error while creating teacher.", value: "" });
                         return;
                     }
 
@@ -594,13 +495,7 @@ export function TeachersUploadCsv() {
                         const column = columnMap[field] || field;
                         const sourceKey = column.toLowerCase();
 
-                        uploadErrors.push({
-                            rowNumber: teacher.rowNumber,
-                            lineNumber: teacher.lineNumber,
-                            column,
-                            message,
-                            value: teacher.source[sourceKey] || "",
-                        });
+                        uploadErrors.push({ rowNumber: teacher.rowNumber, lineNumber: teacher.lineNumber, column, message, value: teacher.source[sourceKey] || "" });
                     });
                 });
             }
@@ -609,11 +504,7 @@ export function TeachersUploadCsv() {
 
             if (uploadErrors.length > 0) {
                 const errorCsv = createErrorCsv(uploadErrors);
-                triggerTextFileDownload(
-                    "teachers-upload-errors.csv",
-                    errorCsv,
-                    "text/csv;charset=utf-8",
-                );
+                triggerTextFileDownload("teachers-upload-errors.csv", errorCsv, "text/csv;charset=utf-8");
                 setStatus({
                     tone: "error",
                     message: `Uploaded ${successCount} teachers. ${uploadErrors.length} validation issue(s) found. Download error CSV for details.`,
@@ -631,6 +522,61 @@ export function TeachersUploadCsv() {
                 message: error instanceof Error ? error.message : "Failed to upload CSV.",
             });
         } finally {
+            setIsUploading(false);
+        }
+    };
+
+    const uploadCsv = async () => {
+        if (!file) {
+            setStatus({ tone: "error", message: "Select a CSV file first." });
+            return;
+        }
+
+        const csvContent = await file.text();
+        await processCsvContent(csvContent);
+    };
+
+    const importGoogleSheet = async () => {
+        if (!googleSheetUrl.trim()) {
+            setStatus({ tone: "error", message: "Enter a public Google Sheet URL first." });
+            return;
+        }
+
+        try {
+            setIsUploading(true);
+            setStatus({ tone: "idle", message: "" });
+            setBatchProgress({ current: 0, total: 0 });
+            setErrorRows([]);
+
+            const response = await fetch("/api/google-sheets/public", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    url: googleSheetUrl,
+                }),
+            });
+            const responseData = (await response.json()) as PublicSheetResponse;
+
+            if (!response.ok || !responseData.csvText) {
+                setStatus({
+                    tone: "error",
+                    message:
+                        responseData.message ||
+                        "Unable to import the public Google Sheet.",
+                });
+                setIsUploading(false);
+                return;
+            }
+
+            await processCsvContent(responseData.csvText);
+        } catch (error) {
+            setStatus({
+                tone: "error",
+                message:
+                    error instanceof Error ? error.message : "Failed to import Google Sheet.",
+            });
             setIsUploading(false);
         }
     };
@@ -672,7 +618,7 @@ export function TeachersUploadCsv() {
 
             {isModalOpen && isClient
                 ? createPortal(
-                <div className="fixed inset-0 z-[200] flex items-center justify-center bg-[rgba(15,23,42,0.52)] p-4">
+                <div className="fixed inset-0 z-200 flex items-center justify-center bg-[rgba(15,23,42,0.52)] p-4">
                     <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white p-6 shadow-[0_24px_60px_rgba(16,32,68,0.25)] sm:p-8">
                         <div className="flex items-start justify-between gap-4">
                             <div>
@@ -711,15 +657,50 @@ export function TeachersUploadCsv() {
                         </div>
 
                         <label className="mt-5 block text-sm font-medium text-[#243552]">
+                            Public Google Sheet URL
+                            <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center">
+                                <input
+                                    className={`${inputClassName} mt-0`}
+                                    type="url"
+                                    placeholder="https://docs.google.com/spreadsheets/d/.../edit?gid=0#gid=0"
+                                    value={googleSheetUrl}
+                                    onChange={(event) => setGoogleSheetUrl(event.target.value)}
+                                    disabled={isUploading}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={importGoogleSheet}
+                                    disabled={isUploading}
+                                    className="inline-flex min-w-55 items-center justify-center rounded-full border border-[rgba(26,97,255,0.18)] bg-[#eef4ff] px-6 py-3 text-sm font-semibold text-[#1a61ff] transition hover:-translate-y-px hover:bg-[#e3edff] disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                    {isUploading ? "Importing..." : "Import"}
+                                </button>
+                            </div>
+                            <p className="mt-2 text-xs text-[#60708d]">
+                                Make sure the sheet is public and viewable by anyone with the link.
+                            </p>
+                        </label>
+
+                        <label className="mt-5 block text-sm font-medium text-[#243552]">
                             CSV File
-                            <input
-                                key={fileInputKey}
-                                className={inputClassName}
-                                type="file"
-                                accept=".csv,text/csv"
-                                onChange={handleFileSelection}
-                                disabled={isUploading}
-                            />
+                            <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center">
+                                <input
+                                    key={fileInputKey}
+                                    className={`${inputClassName} mt-0`}
+                                    type="file"
+                                    accept=".csv,text/csv"
+                                    onChange={handleFileSelection}
+                                    disabled={isUploading}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={uploadCsv}
+                                    disabled={isUploading}
+                                    className="inline-flex min-w-55 items-center justify-center rounded-full bg-[#1a61ff] px-6 py-3 text-sm font-semibold text-white shadow-[0_14px_28px_rgba(26,97,255,0.28)] transition hover:-translate-y-px hover:bg-[#114fe0] disabled:cursor-not-allowed disabled:bg-[#7aa5ff] disabled:shadow-none"
+                                >
+                                    {isUploading ? "Uploading..." : "Upload CSV"}
+                                </button>
+                            </div>
                             {file ? (
                                 <p className="mt-2 text-xs font-medium text-[#5e6d8c]">Selected: {file.name}</p>
                             ) : null}
@@ -730,25 +711,6 @@ export function TeachersUploadCsv() {
                                 Uploading batch {batchProgress.current} of {batchProgress.total}
                             </p>
                         ) : null}
-
-                        <div className="mt-6 flex flex-wrap items-center gap-3">
-                            <button
-                                type="button"
-                                onClick={uploadCsv}
-                                disabled={isUploading}
-                                className="inline-flex items-center justify-center rounded-full bg-[#1a61ff] px-6 py-3 text-sm font-semibold text-white shadow-[0_14px_28px_rgba(26,97,255,0.28)] transition hover:-translate-y-px hover:bg-[#114fe0] disabled:cursor-not-allowed disabled:bg-[#7aa5ff] disabled:shadow-none"
-                            >
-                                {isUploading ? "Uploading..." : "Upload CSV"}
-                            </button>
-                            <button
-                                type="button"
-                                onClick={downloadErrorCsv}
-                                disabled={!hasErrors || isUploading}
-                                className="inline-flex items-center justify-center rounded-full border border-[rgba(18,36,76,0.12)] bg-white px-6 py-3 text-sm font-semibold text-[#10203f] transition hover:bg-[#f8fbff] disabled:cursor-not-allowed disabled:opacity-60"
-                            >
-                                Download Error CSV
-                            </button>
-                        </div>
 
                         {status.message ? (
                             <p className={`mt-4 rounded-2xl border px-4 py-3 text-sm ${statusClassName}`}>
