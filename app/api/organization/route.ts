@@ -2,10 +2,13 @@ import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { hashPassword } from "@/lib/organization-auth";
 import { getDatabase } from "@/lib/mongodb";
+import schoolBoardData from "@/public/json/school-boards.json";
 
 type CreateOrganizationPayload = {
   organizationName?: string;
   schoolName?: string;
+  board?: string;
+  subjects?: string[];
   name?: string;
   email?: string;
   phone?: string;
@@ -20,6 +23,8 @@ type SchoolDocument = {
   uid: string;
   schoolName: string;
   name?: string;
+  board: string;
+  subjects: string[];
   phone: string;
   state: string;
   district: string;
@@ -42,9 +47,30 @@ const COLLECTION_NAME = "organization";
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const phonePattern = /^\d{10}$/;
 const pincodePattern = /^\d{6}$/;
+const boardDirectory = (schoolBoardData as {
+  boards: Record<string, { subjects: string[] }>;
+}).boards;
+const allowedBoards = new Map(
+  Object.entries(boardDirectory).map(([key, value]) => [
+    key.toUpperCase(),
+    new Set(value.subjects),
+  ]),
+);
 
 function normalizeString(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function normalizeArray(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const normalizedItems = value
+    .map((item) => normalizeString(item))
+    .filter(Boolean);
+
+  return Array.from(new Set(normalizedItems));
 }
 
 export async function POST(request: Request) {
@@ -53,6 +79,8 @@ export async function POST(request: Request) {
     const name = normalizeString(payload.name);
     const organizationName = normalizeString(payload.organizationName);
     const schoolName = normalizeString(payload.schoolName);
+    const board = normalizeString(payload.board).toUpperCase();
+    const subjects = normalizeArray(payload.subjects);
     const email = normalizeString(payload.email).toLowerCase();
     const phone = normalizeString(payload.phone);
     const state = normalizeString(payload.state);
@@ -73,6 +101,21 @@ export async function POST(request: Request) {
 
     if (!schoolName) {
       fieldErrors.schoolName = "School name is required.";
+    }
+
+    if (!allowedBoards.has(board)) {
+      fieldErrors.board = "Select a valid board.";
+    }
+
+    const allowedSubjects = allowedBoards.get(board);
+
+    if (!subjects.length) {
+      fieldErrors.subjects = "Select at least one subject.";
+    } else if (
+      allowedSubjects &&
+      subjects.some((subject) => !allowedSubjects.has(subject))
+    ) {
+      fieldErrors.subjects = "Select valid subjects for the chosen board.";
     }
 
     if (!emailPattern.test(email)) {
@@ -144,6 +187,8 @@ export async function POST(request: Request) {
       uid: randomUUID(),
       schoolName,
       name: schoolName,
+      board,
+      subjects,
       phone,
       state,
       district,

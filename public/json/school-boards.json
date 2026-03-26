@@ -1,0 +1,93 @@
+{
+  "boards": {
+    "ssc": {
+      "subjects": [
+        "English",
+        "Telugu",
+        "Hindi",
+        "Urdu",
+        "Sanskrit",
+        "Mathematics",
+        "Environmental Studies (EVS)",
+        "Science",
+        "Physics",
+        "Chemistry",
+        "Biology",
+        "Social Studies",
+        "History",
+        "Geography",
+        "Civics",
+        "Economics",
+        "Computer Science",
+        "General Knowledge (GK)",
+        "Moral Science / Value Education",
+        "Art / Drawing / Craft",
+        "Physical Education / Games",
+        "General Awareness",
+        "Rhymes / Storytelling",
+        "Conversation / Speaking"
+      ]
+    },
+    "cbse": {
+      "subjects": [
+        "English",
+        "Telugu",
+        "Hindi",
+        "Urdu",
+        "Sanskrit",
+        "Mathematics",
+        "Environmental Studies (EVS)",
+        "Science",
+        "Physics",
+        "Chemistry",
+        "Biology",
+        "Social Science",
+        "History",
+        "Geography",
+        "Political Science / Civics",
+        "Economics",
+        "Computer Science / Information Technology",
+        "General Knowledge (GK)",
+        "Moral Science / Value Education",
+        "Art Education",
+        "Work Education / SUPW",
+        "Health and Physical Education",
+        "Skill Subjects",
+        "General Awareness",
+        "Rhymes / Storytelling",
+        "Conversation / Speaking"
+      ]
+    },
+    "icse": {
+      "subjects": [
+        "English Language",
+        "English Literature",
+        "Telugu",
+        "Hindi",
+        "Urdu",
+        "Sanskrit",
+        "Mathematics",
+        "Environmental Studies (EVS)",
+        "Science",
+        "Physics",
+        "Chemistry",
+        "Biology",
+        "History",
+        "Geography",
+        "Civics",
+        "Economics",
+        "Computer Applications",
+        "Economic Applications / Commercial Studies",
+        "Environmental Science",
+        "General Knowledge (GK)",
+        "Moral Science / Value Education",
+        "Art / Drawing",
+        "Physical Education",
+        "Work Education",
+        "General Awareness",
+        "Rhymes / Storytelling",
+        "Conversation / Speaking"
+      ]
+    }
+  }
+}

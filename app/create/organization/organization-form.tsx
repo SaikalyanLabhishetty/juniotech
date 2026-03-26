@@ -1,6 +1,7 @@
 "use client";
 
 import locationData from "@/public/json/states-and-districts.json";
+import schoolBoardData from "@/public/json/school-boards.json";
 import {
   type ChangeEvent,
   type FocusEvent,
@@ -14,6 +15,8 @@ type OrganizationFormData = {
   phone: string;
   organizationName: string;
   schoolName: string;
+  board: string;
+  subjects: string[];
   state: string;
   district: string;
   pincode: string;
@@ -29,6 +32,17 @@ type LocationDirectory = {
   }[];
 };
 
+type BoardDirectory = {
+  boards: Record<
+    string,
+    {
+      subjects: string[];
+    }
+  >;
+};
+
+type StringFormField = Exclude<keyof OrganizationFormData, "subjects">;
+
 type FormFieldErrors = Partial<Record<keyof OrganizationFormData, string>>;
 
 type CreateOrganizationResponse = {
@@ -42,6 +56,8 @@ const initialFormData: OrganizationFormData = {
   phone: "",
   organizationName: "",
   schoolName: "",
+  board: "",
+  subjects: [],
   state: "",
   district: "",
   pincode: "",
@@ -63,6 +79,14 @@ const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const phonePattern = /^\d{10}$/;
 const pincodePattern = /^\d{6}$/;
 const stateRecords = (locationData as LocationDirectory).states;
+const boardRecords = Object.entries((schoolBoardData as BoardDirectory).boards).map(
+  ([key, value]) => ({
+    key,
+    label: key.toUpperCase(),
+    value: key.toUpperCase(),
+    subjects: value.subjects,
+  }),
+);
 
 function findStateRecord(stateValue: string) {
   const normalizedState = stateValue.trim().toLowerCase();
@@ -73,7 +97,7 @@ function findStateRecord(stateValue: string) {
 }
 
 function validateField(
-  name: keyof OrganizationFormData,
+  name: StringFormField,
   value: string,
 ): string | undefined {
   if (name === "name" && !value.trim()) {
@@ -102,6 +126,14 @@ function validateField(
 
   if (name === "schoolName" && !value.trim()) {
     return "School name is required.";
+  }
+
+  if (name === "board" && !value.trim()) {
+    return "Select a board.";
+  }
+
+  if (name === "password" && value.length < 8) {
+    return "Password must be at least 8 characters long.";
   }
 
   return undefined;
@@ -136,6 +168,10 @@ export function OrganizationForm() {
         )
         .slice(0, 12)
     : [];
+  const selectedBoardRecord = boardRecords.find(
+    (record) => record.value === formData.board,
+  );
+  const availableSubjects = selectedBoardRecord?.subjects ?? [];
 
   const selectState = (state: string) => {
     setFormData((current) => ({
@@ -164,8 +200,10 @@ export function OrganizationForm() {
     setIsDistrictDropdownOpen(false);
   };
 
-  const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const fieldName = event.target.name as keyof OrganizationFormData;
+  const handleChange = (
+    event: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
+    const fieldName = event.target.name as StringFormField;
     let nextValue = event.target.value;
 
     if (fieldName === "phone" || fieldName === "pincode") {
@@ -197,6 +235,14 @@ export function OrganizationForm() {
         };
       }
 
+      if (fieldName === "board") {
+        return {
+          ...current,
+          board: nextValue,
+          subjects: [],
+        };
+      }
+
       return {
         ...current,
         [fieldName]: nextValue,
@@ -213,7 +259,9 @@ export function OrganizationForm() {
         fieldName !== "name" &&
         fieldName !== "organizationName" &&
         fieldName !== "schoolName" &&
-        fieldName !== "address"
+        fieldName !== "address" &&
+        fieldName !== "board" &&
+        fieldName !== "password"
       ) {
         return current;
       }
@@ -225,8 +273,30 @@ export function OrganizationForm() {
             ? undefined
             : validateField(fieldName, nextValue),
         ...(fieldName === "state" ? { district: undefined } : {}),
+        ...(fieldName === "board" ? { subjects: undefined } : {}),
       };
     });
+
+    if (status.tone !== "idle") {
+      setStatus({ tone: "idle", message: "" });
+    }
+  };
+
+  const handleSubjectToggle = (subject: string) => {
+    setFormData((current) => {
+      const hasSubject = current.subjects.includes(subject);
+
+      return {
+        ...current,
+        subjects: hasSubject
+          ? current.subjects.filter((item) => item !== subject)
+          : [...current.subjects, subject],
+      };
+    });
+    setFieldErrors((current) => ({
+      ...current,
+      subjects: undefined,
+    }));
 
     if (status.tone !== "idle") {
       setStatus({ tone: "idle", message: "" });
@@ -262,10 +332,15 @@ export function OrganizationForm() {
         formData.organizationName,
       ),
       schoolName: validateField("schoolName", formData.schoolName),
+      board: validateField("board", formData.board),
+      subjects: formData.subjects.length
+        ? undefined
+        : "Select at least one subject.",
       email: validateField("email", formData.email),
       phone: validateField("phone", formData.phone),
       pincode: validateField("pincode", formData.pincode),
       address: validateField("address", formData.address),
+      password: validateField("password", formData.password),
       state: selectedStateRecord
         ? undefined
         : "Select a valid state from the suggestions.",
@@ -310,6 +385,8 @@ export function OrganizationForm() {
           name: formData.name,
           organizationName: formData.organizationName,
           schoolName: formData.schoolName,
+          board: formData.board,
+          subjects: formData.subjects,
           email: formData.email,
           phone: formData.phone,
           state: formData.state,
@@ -448,6 +525,71 @@ export function OrganizationForm() {
             </p>
           ) : null}
         </label>
+
+        <label className="text-sm font-medium text-[#243552]">
+          Board
+          <select
+            className={inputClassName}
+            name="board"
+            value={formData.board}
+            onChange={handleChange}
+            required
+          >
+            <option value="">Select board</option>
+            {boardRecords.map((board) => (
+              <option key={board.key} value={board.value}>
+                {board.label}
+              </option>
+            ))}
+          </select>
+          {fieldErrors.board ? (
+            <p className={errorTextClassName}>{fieldErrors.board}</p>
+          ) : null}
+        </label>
+
+        <div className="text-sm font-medium text-[#243552]">
+          <div className="flex items-center justify-between gap-3">
+            <span>Subjects</span>
+            {formData.subjects.length ? (
+              <span className="text-xs font-medium text-[#60708d]">
+                {formData.subjects.length} selected
+              </span>
+            ) : null}
+          </div>
+          <div className="mt-2 rounded-[1rem] border border-[rgba(18,36,76,0.12)] bg-[#f8fbff] p-4">
+            {selectedBoardRecord ? (
+              <div className="max-h-48 overflow-y-auto pr-1">
+                <div className="grid gap-3 sm:grid-cols-2">
+                {availableSubjects.map((subject) => {
+                  const isChecked = formData.subjects.includes(subject);
+
+                  return (
+                    <label
+                      key={subject}
+                      className="flex items-start gap-3 rounded-[0.9rem] border border-transparent bg-white px-3 py-2 text-sm font-medium text-[#243552] transition hover:border-[rgba(26,97,255,0.2)]"
+                    >
+                      <input
+                        className="mt-1 h-4 w-4 rounded border-[rgba(18,36,76,0.22)] text-[#1a61ff] focus:ring-[#1a61ff]"
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => handleSubjectToggle(subject)}
+                      />
+                      <span>{subject}</span>
+                    </label>
+                  );
+                })}
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-[#60708d]">
+                Select a board to view and choose subjects.
+              </p>
+            )}
+          </div>
+          {fieldErrors.subjects ? (
+            <p className={errorTextClassName}>{fieldErrors.subjects}</p>
+          ) : null}
+        </div>
 
         <label className="text-sm font-medium text-[#243552]">
           State

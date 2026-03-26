@@ -1,7 +1,7 @@
 "use client";
 
-import { type ChangeEvent, type FormEvent, type KeyboardEvent, useEffect, useState } from "react";
-import { getAuthorizationHeader } from "@/lib/client-auth";
+import { type ChangeEvent, type FormEvent, useEffect, useState } from "react";
+import { getAuthorizationHeader, getStoredAccessTokenPayload } from "@/lib/client-auth";
 
 type ClassOption = {
     uid: string;
@@ -17,7 +17,6 @@ type AddTeacherFormData = {
     classIds: string[];
     classTeacherClassId: string;
     subjects: string[];
-    subjectInput: string;
     isClassTeacher: boolean;
 };
 
@@ -26,6 +25,16 @@ type FormFieldErrors = Partial<Record<string, string>>;
 type AddTeacherResponse = {
     message?: string;
     fieldErrors?: FormFieldErrors;
+};
+
+type OrganizationProfileResponse = {
+    message?: string;
+    organization?: {
+        schools?: Array<{
+            uid?: string;
+            subjects?: string[];
+        }>;
+    };
 };
 
 const inputClassName =
@@ -40,20 +49,17 @@ const initialFormData: AddTeacherFormData = {
     classIds: [],
     classTeacherClassId: "",
     subjects: [],
-    subjectInput: "",
     isClassTeacher: false,
 };
-
-function normalizeSubject(value: string) {
-    return value.trim();
-}
 
 export function AddTeacherForm() {
     const [formData, setFormData] = useState<AddTeacherFormData>(initialFormData);
     const [fieldErrors, setFieldErrors] = useState<FormFieldErrors>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoadingClasses, setIsLoadingClasses] = useState(true);
+    const [isLoadingSubjects, setIsLoadingSubjects] = useState(true);
     const [classes, setClasses] = useState<ClassOption[]>([]);
+    const [availableSubjects, setAvailableSubjects] = useState<string[]>([]);
     const [classSearch, setClassSearch] = useState("");
     const [status, setStatus] = useState<{
         tone: "idle" | "error" | "success";
@@ -98,14 +104,69 @@ export function AddTeacherForm() {
         fetchClasses();
     }, []);
 
+    useEffect(() => {
+        const fetchSchoolSubjects = async () => {
+            try {
+                setIsLoadingSubjects(true);
+
+                const response = await fetch("/api/organization/profile", {
+                    headers: {
+                        ...getAuthorizationHeader(),
+                    },
+                });
+
+                if (!response.ok) {
+                    const data = (await response.json()) as { message?: string };
+                    setStatus({
+                        tone: "error",
+                        message: data.message || "Unable to load school subjects.",
+                    });
+                    return;
+                }
+
+                const data = (await response.json()) as OrganizationProfileResponse;
+                const schools = Array.isArray(data.organization?.schools)
+                    ? data.organization.schools
+                    : [];
+                const tokenPayload = getStoredAccessTokenPayload();
+                const activeSchoolId = tokenPayload?.schoolId?.trim();
+                const activeSchool = activeSchoolId
+                    ? schools.find((school) => (school.uid || "").trim() === activeSchoolId)
+                    : schools[0];
+                const schoolSubjects = Array.isArray(activeSchool?.subjects)
+                    ? activeSchool.subjects
+                          .filter((subject): subject is string => typeof subject === "string")
+                          .map((subject) => subject.trim())
+                          .filter(Boolean)
+                    : [];
+                const uniqueSubjects = Array.from(new Set(schoolSubjects));
+
+                setAvailableSubjects(uniqueSubjects);
+                setFormData((current) => ({
+                    ...current,
+                    subjects: current.subjects.filter((subject) =>
+                        uniqueSubjects.includes(subject),
+                    ),
+                }));
+            } catch {
+                setStatus({
+                    tone: "error",
+                    message: "Network error while loading school subjects.",
+                });
+            } finally {
+                setIsLoadingSubjects(false);
+            }
+        };
+
+        fetchSchoolSubjects();
+    }, []);
+
     const handleChange = (event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value, type } = event.target;
 
         if (name === "phone") {
             const sanitized = value.replace(/\D/g, "").slice(0, 10);
             setFormData((current) => ({ ...current, phone: sanitized }));
-        } else if (name === "subjectInput") {
-            setFormData((current) => ({ ...current, subjectInput: value }));
         } else if (name === "isClassTeacher" && type === "checkbox") {
             const checkbox = event.target as HTMLInputElement;
             setFormData((current) => ({
@@ -162,33 +223,17 @@ export function AddTeacherForm() {
         });
     };
 
-    const addSubjectFromInput = () => {
-        const subject = normalizeSubject(formData.subjectInput);
-        if (!subject) {
-            return;
-        }
-
+    const toggleSubject = (subject: string) => {
         setFormData((current) => ({
             ...current,
             subjects: current.subjects.includes(subject)
-                ? current.subjects
+                ? current.subjects.filter((item) => item !== subject)
                 : [...current.subjects, subject],
-            subjectInput: "",
         }));
-    };
 
-    const handleSubjectKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-        if (event.key === "Enter") {
-            event.preventDefault();
-            addSubjectFromInput();
+        if (status.tone !== "idle") {
+            setStatus({ tone: "idle", message: "" });
         }
-    };
-
-    const removeSubject = (subject: string) => {
-        setFormData((current) => ({
-            ...current,
-            subjects: current.subjects.filter((item) => item !== subject),
-        }));
     };
 
     const validateForm = () => {
@@ -208,6 +253,10 @@ export function AddTeacherForm() {
 
         if (formData.classIds.length === 0) {
             errors.classIds = "Select at least one class.";
+        }
+
+        if (availableSubjects.length > 0 && formData.subjects.length === 0) {
+            errors.subjects = "Select at least one subject.";
         }
 
         if (formData.isClassTeacher && !formData.classTeacherClassId) {
@@ -240,21 +289,6 @@ export function AddTeacherForm() {
         try {
             setIsSubmitting(true);
 
-            const normalizedSubjectInput = normalizeSubject(formData.subjectInput);
-            const subjects = normalizedSubjectInput
-                ? formData.subjects.includes(normalizedSubjectInput)
-                    ? formData.subjects
-                    : [...formData.subjects, normalizedSubjectInput]
-                : formData.subjects;
-
-            if (normalizedSubjectInput) {
-                setFormData((current) => ({
-                    ...current,
-                    subjects,
-                    subjectInput: "",
-                }));
-            }
-
             const response = await fetch("/api/organization/teachers", {
                 method: "POST",
                 headers: {
@@ -267,7 +301,7 @@ export function AddTeacherForm() {
                     dob: formData.dob,
                     classIds: formData.classIds,
                     classTeacherClassId: formData.classTeacherClassId,
-                    subjects,
+                    subjects: formData.subjects,
                     isClassTeacher: formData.isClassTeacher,
                 }),
             });
@@ -415,35 +449,43 @@ export function AddTeacherForm() {
                 </div>
 
                 <label className="block text-sm font-medium text-[#243552] sm:col-span-2">
-                    Subjects (Press Enter to add)
-                    <input
-                        className={inputClassName}
-                        name="subjectInput"
-                        type="text"
-                        value={formData.subjectInput}
-                        onChange={handleChange}
-                        onKeyDown={handleSubjectKeyDown}
-                        placeholder="Example: Math, Science"
-                    />
-                    {formData.subjects.length > 0 ? (
-                        <div className="mt-3 flex flex-wrap gap-2">
-                            {formData.subjects.map((subject) => (
-                                <span
-                                    key={subject}
-                                    className="inline-flex items-center gap-2 rounded-full bg-[#f6f1ff] px-3 py-1 text-xs font-semibold text-[#6d2cc8]"
-                                >
-                                    {subject}
-                                    <button
-                                        type="button"
-                                        onClick={() => removeSubject(subject)}
-                                        className="text-[#6d2cc8] transition hover:text-[#4c178f]"
-                                        aria-label={`Remove ${subject}`}
-                                    >
-                                        ×
-                                    </button>
-                                </span>
-                            ))}
-                        </div>
+                    Subjects
+                    <div className="mt-2 rounded-[1rem] border border-[rgba(18,36,76,0.12)] bg-[#f8fbff] p-4">
+                        {isLoadingSubjects ? (
+                            <p className="text-sm text-[#8a96ad]">Loading subjects...</p>
+                        ) : availableSubjects.length === 0 ? (
+                            <p className="text-sm text-[#8a96ad]">
+                                No subjects configured for this school.
+                            </p>
+                        ) : (
+                            <div className="max-h-48 overflow-y-auto pr-1">
+                                <div className="grid gap-3 sm:grid-cols-2">
+                                    {availableSubjects.map((subject) => (
+                                        <label
+                                            key={subject}
+                                            className="flex items-start gap-3 rounded-[0.9rem] border border-transparent bg-white px-3 py-2 text-sm font-medium text-[#243552] transition hover:border-[rgba(26,97,255,0.2)]"
+                                        >
+                                            <input
+                                                className="mt-1 h-4 w-4 rounded border-[rgba(18,36,76,0.22)] text-[#1a61ff] focus:ring-[#1a61ff]"
+                                                type="checkbox"
+                                                checked={formData.subjects.includes(subject)}
+                                                onChange={() => toggleSubject(subject)}
+                                            />
+                                            <span>{subject}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                        {formData.subjects.length > 0 ? (
+                            <p className="mt-3 text-xs font-medium text-[#5e6d8c]">
+                                Selected {formData.subjects.length} subject
+                                {formData.subjects.length > 1 ? "s" : ""}
+                            </p>
+                        ) : null}
+                    </div>
+                    {fieldErrors.subjects ? (
+                        <p className={errorTextClassName}>{fieldErrors.subjects}</p>
                     ) : null}
                 </label>
 
@@ -496,7 +538,7 @@ export function AddTeacherForm() {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
                 <button
                     type="submit"
-                    disabled={isSubmitting || isLoadingClasses}
+                    disabled={isSubmitting || isLoadingClasses || isLoadingSubjects}
                     className="inline-flex items-center justify-center rounded-full bg-[#1a61ff] px-6 py-3 text-sm font-semibold text-white shadow-[0_14px_28px_rgba(26,97,255,0.28)] transition hover:-translate-y-px hover:bg-[#114fe0] disabled:cursor-not-allowed disabled:bg-[#7aa5ff] disabled:shadow-none"
                 >
                     {isSubmitting ? "Adding..." : "Add Teacher"}

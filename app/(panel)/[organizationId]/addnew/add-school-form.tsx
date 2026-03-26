@@ -1,5 +1,6 @@
 "use client";
 
+import schoolBoardData from "@/public/json/school-boards.json";
 import { type ChangeEvent, type FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -15,11 +16,24 @@ type AddSchoolFormProps = {
 
 type AddSchoolFormData = {
     schoolName: string;
+    board: string;
+    subjects: string[];
     phone: string;
     state: string;
     district: string;
     pincode: string;
     address: string;
+};
+
+type StringFieldName = Exclude<keyof AddSchoolFormData, "subjects">;
+
+type BoardDirectory = {
+    boards: Record<
+        string,
+        {
+            subjects: string[];
+        }
+    >;
 };
 
 type FormFieldErrors = Partial<Record<keyof AddSchoolFormData, string>>;
@@ -46,9 +60,19 @@ const errorTextClassName = "mt-2 text-xs font-medium text-[#b42318]";
 const phonePattern = /^\d{10}$/;
 const pincodePattern = /^\d{6}$/;
 const routeIntentTtlMs = 10 * 60 * 1000;
+const boardRecords = Object.entries((schoolBoardData as BoardDirectory).boards).map(
+    ([key, value]) => ({
+        key,
+        label: key.toUpperCase(),
+        value: key.toUpperCase(),
+        subjects: value.subjects,
+    }),
+);
 
 const initialFormData: AddSchoolFormData = {
     schoolName: "",
+    board: "",
+    subjects: [],
     phone: "",
     state: "",
     district: "",
@@ -57,11 +81,15 @@ const initialFormData: AddSchoolFormData = {
 };
 
 function validateField(
-    name: keyof AddSchoolFormData,
+    name: StringFieldName,
     value: string,
 ): string | undefined {
     if (name === "schoolName" && !value.trim()) {
         return "School name is required.";
+    }
+
+    if (name === "board" && !value.trim()) {
+        return "Select a board.";
     }
 
     if (name === "phone" && !phonePattern.test(value)) {
@@ -101,6 +129,10 @@ export function AddSchoolForm({ organizationId }: AddSchoolFormProps) {
         tone: "idle",
         message: "",
     });
+    const selectedBoardRecord = boardRecords.find(
+        (record) => record.value === formData.board,
+    );
+    const availableSubjects = selectedBoardRecord?.subjects ?? [];
 
     useEffect(() => {
         const tokenPayload = getStoredAccessTokenPayload();
@@ -147,9 +179,11 @@ export function AddSchoolForm({ organizationId }: AddSchoolFormProps) {
         router.replace("/dashboard");
     };
 
-    const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const handleChange = (
+        event: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+    ) => {
         const { name, value } = event.target;
-        const fieldName = name as keyof AddSchoolFormData;
+        const fieldName = name as StringFieldName;
         let nextValue = value;
 
         if (fieldName === "phone" || fieldName === "pincode") {
@@ -164,14 +198,46 @@ export function AddSchoolForm({ organizationId }: AddSchoolFormProps) {
             nextValue = nextValue.slice(0, 6);
         }
 
-        setFormData((current) => ({
-            ...current,
-            [fieldName]: nextValue,
-        }));
+        setFormData((current) => {
+            if (fieldName === "board") {
+                return {
+                    ...current,
+                    board: nextValue,
+                    subjects: [],
+                };
+            }
+
+            return {
+                ...current,
+                [fieldName]: nextValue,
+            };
+        });
 
         setFieldErrors((current) => ({
             ...current,
             [fieldName]: validateField(fieldName, nextValue),
+            ...(fieldName === "board" ? { subjects: undefined } : {}),
+        }));
+
+        if (status.tone !== "idle") {
+            setStatus({ tone: "idle", message: "" });
+        }
+    };
+
+    const handleSubjectToggle = (subject: string) => {
+        setFormData((current) => {
+            const hasSubject = current.subjects.includes(subject);
+
+            return {
+                ...current,
+                subjects: hasSubject
+                    ? current.subjects.filter((item) => item !== subject)
+                    : [...current.subjects, subject],
+            };
+        });
+        setFieldErrors((current) => ({
+            ...current,
+            subjects: undefined,
         }));
 
         if (status.tone !== "idle") {
@@ -184,6 +250,10 @@ export function AddSchoolForm({ organizationId }: AddSchoolFormProps) {
 
         const nextFieldErrors: FormFieldErrors = {
             schoolName: validateField("schoolName", formData.schoolName),
+            board: validateField("board", formData.board),
+            subjects: formData.subjects.length
+                ? undefined
+                : "Select at least one subject.",
             phone: validateField("phone", formData.phone),
             state: validateField("state", formData.state),
             district: validateField("district", formData.district),
@@ -321,6 +391,27 @@ export function AddSchoolForm({ organizationId }: AddSchoolFormProps) {
                 </label>
 
                 <label className="block text-sm font-medium text-[#243552]">
+                    Board
+                    <select
+                        className={inputClassName}
+                        name="board"
+                        value={formData.board}
+                        onChange={handleChange}
+                        required
+                    >
+                        <option value="">Select board</option>
+                        {boardRecords.map((board) => (
+                            <option key={board.key} value={board.value}>
+                                {board.label}
+                            </option>
+                        ))}
+                    </select>
+                    {fieldErrors.board ? (
+                        <p className={errorTextClassName}>{fieldErrors.board}</p>
+                    ) : null}
+                </label>
+
+                <label className="block text-sm font-medium text-[#243552]">
                     State
                     <input
                         className={inputClassName}
@@ -383,6 +474,50 @@ export function AddSchoolForm({ organizationId }: AddSchoolFormProps) {
                         <p className={errorTextClassName}>{fieldErrors.address}</p>
                     ) : null}
                 </label>
+
+                <div className="block text-sm font-medium text-[#243552] sm:col-span-2">
+                    <div className="flex items-center justify-between gap-3">
+                        <span>Subjects</span>
+                        {formData.subjects.length ? (
+                            <span className="text-xs font-medium text-[#60708d]">
+                                {formData.subjects.length} selected
+                            </span>
+                        ) : null}
+                    </div>
+                    <div className="mt-2 rounded-[1rem] border border-[rgba(18,36,76,0.12)] bg-[#f8fbff] p-4">
+                        {selectedBoardRecord ? (
+                            <div className="max-h-48 overflow-y-auto pr-1">
+                                <div className="grid gap-3 sm:grid-cols-2">
+                                    {availableSubjects.map((subject) => {
+                                        const isChecked = formData.subjects.includes(subject);
+
+                                        return (
+                                            <label
+                                                key={subject}
+                                                className="flex items-start gap-3 rounded-[0.9rem] border border-transparent bg-white px-3 py-2 text-sm font-medium text-[#243552] transition hover:border-[rgba(26,97,255,0.2)]"
+                                            >
+                                                <input
+                                                    className="mt-1 h-4 w-4 rounded border-[rgba(18,36,76,0.22)] text-[#1a61ff] focus:ring-[#1a61ff]"
+                                                    type="checkbox"
+                                                    checked={isChecked}
+                                                    onChange={() => handleSubjectToggle(subject)}
+                                                />
+                                                <span>{subject}</span>
+                                            </label>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        ) : (
+                            <p className="text-sm text-[#60708d]">
+                                Select a board to view and choose subjects.
+                            </p>
+                        )}
+                    </div>
+                    {fieldErrors.subjects ? (
+                        <p className={errorTextClassName}>{fieldErrors.subjects}</p>
+                    ) : null}
+                </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-3">

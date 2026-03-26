@@ -30,6 +30,14 @@ type ClassDocument = {
     schoolId: string;
 };
 
+type OrganizationDocument = {
+    uid: string;
+    schools?: Array<{
+        uid?: string;
+        subjects?: string[];
+    }>;
+};
+
 type CreateTeacherPayload = {
     name?: string;
     phone?: string;
@@ -216,6 +224,40 @@ export async function POST(request: Request) {
 
         const collection = database.collection<TeacherDocument>(COLLECTION_NAME);
         const classesCollection = database.collection<ClassDocument>(CLASSES_COLLECTION);
+        const organizationsCollection = database.collection<OrganizationDocument>(
+            "organization",
+        );
+
+        const organization = await organizationsCollection.findOne(
+            { uid: tokenPayload.uid },
+            {
+                projection: {
+                    schools: 1,
+                },
+            },
+        );
+
+        const schools = Array.isArray(organization?.schools)
+            ? organization?.schools
+            : [];
+        const activeSchool = schools.find(
+            (school) => normalizeString(school.uid) === schoolId,
+        );
+        const schoolSubjects = Array.isArray(activeSchool?.subjects)
+            ? activeSchool.subjects
+                  .map((subject) => normalizeString(subject))
+                  .filter(Boolean)
+            : [];
+        const validSubjectSet = new Set(schoolSubjects);
+
+        if (validSubjectSet.size > 0 && subjects.length === 0) {
+            fieldErrors.subjects = "Select at least one subject.";
+        } else if (
+            validSubjectSet.size > 0 &&
+            subjects.some((subject) => !validSubjectSet.has(subject))
+        ) {
+            fieldErrors.subjects = "Select valid subjects for the current school.";
+        }
 
         const uniqueClassIds = [...new Set(classIds)];
         const validClasses = uniqueClassIds.length

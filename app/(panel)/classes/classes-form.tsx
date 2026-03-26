@@ -68,6 +68,19 @@ function normalizeSectionValue(value: string) {
     return value.toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
 
+function getSectionSuffix(index: number) {
+    const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+    if (index < alphabet.length) {
+        return alphabet[index];
+    }
+
+    const first = Math.floor(index / alphabet.length) - 1;
+    const second = index % alphabet.length;
+
+    return `${alphabet[Math.max(first, 0)]}${alphabet[second]}`;
+}
+
 export function ClassesForm() {
     const [mode, setMode] = useState<Mode>("single");
     const [singleFormData, setSingleFormData] =
@@ -85,6 +98,37 @@ export function ClassesForm() {
     });
 
     const bulkCountNumber = useMemo(() => Number(bulkFormData.count), [bulkFormData.count]);
+    const bulkSectionsPreview = useMemo(() => {
+        const inputTokens = bulkFormData.sectionInput
+            .split(",")
+            .map((token) => normalizeSectionValue(token))
+            .filter(Boolean);
+
+        const combined = [...bulkFormData.sections];
+
+        inputTokens.forEach((token) => {
+            if (!combined.includes(token)) {
+                combined.push(token);
+            }
+        });
+
+        return combined;
+    }, [bulkFormData.sectionInput, bulkFormData.sections]);
+    const suggestedSectionsPreview = useMemo(() => {
+        const className = bulkFormData.className.trim().toUpperCase();
+
+        if (!className || !Number.isFinite(bulkCountNumber) || bulkCountNumber < 1) {
+            return [] as string[];
+        }
+
+        const cappedCount = Math.min(bulkCountNumber, 52);
+
+        return Array.from({ length: cappedCount }, (_, index) => {
+            const suffix = getSectionSuffix(index);
+
+            return `${className}${suffix}`;
+        });
+    }, [bulkCountNumber, bulkFormData.className]);
 
     const setModeAndReset = (nextMode: Mode) => {
         setMode(nextMode);
@@ -236,8 +280,10 @@ export function ClassesForm() {
 
         if (!bulkFormData.count.trim()) {
             errors.count = "Number of classes is required.";
-        } else if (bulkCountNumber !== 1) {
-            errors.count = "Bulk add currently supports one class at a time.";
+        } else if (!Number.isFinite(bulkCountNumber) || bulkCountNumber < 1) {
+            errors.count = "Enter a valid count (minimum 1).";
+        } else if (bulkCountNumber > 52) {
+            errors.count = "Use a count up to 52 for readable section suggestions.";
         }
 
         if (!bulkFormData.className.trim()) {
@@ -480,28 +526,7 @@ export function ClassesForm() {
             ) : (
                 <div className="grid gap-5 sm:grid-cols-2">
                     <label className="block text-[0.82rem] font-bold tracking-tight text-[#4a5a7a]">
-                        Number of Classes
-                        <input
-                            className={inputClassName}
-                            name="count"
-                            type="text"
-                            value={bulkFormData.count}
-                            onChange={handleBulkChange}
-                            placeholder="Example: 1"
-                            inputMode="numeric"
-                            required
-                        />
-                        {fieldErrors.count ? (
-                            <p className={errorTextClassName}>{fieldErrors.count}</p>
-                        ) : (
-                            <p className="mt-2 text-[0.7rem] font-medium text-[#8a96ad]">
-                                For now, bulk add supports one class with multiple sections.
-                            </p>
-                        )}
-                    </label>
-
-                    <label className="block text-[0.82rem] font-bold tracking-tight text-[#4a5a7a]">
-                        Class Name
+                        Step 1: Class Name
                         <input
                             className={inputClassName}
                             name="className"
@@ -513,11 +538,61 @@ export function ClassesForm() {
                         />
                         {fieldErrors.className ? (
                             <p className={errorTextClassName}>{fieldErrors.className}</p>
-                        ) : null}
+                        ) : (
+                            <p className="mt-2 text-[0.7rem] font-medium text-[#8a96ad]">
+                                Example: 1, 2, 3, 10, NURSERY
+                            </p>
+                        )}
                     </label>
 
+                    <label className="block text-[0.82rem] font-bold tracking-tight text-[#4a5a7a]">
+                        Step 2: Count (for section preview)
+                        <input
+                            className={inputClassName}
+                            name="count"
+                            type="text"
+                            value={bulkFormData.count}
+                            onChange={handleBulkChange}
+                            placeholder="Example: 5"
+                            inputMode="numeric"
+                            required
+                        />
+                        {fieldErrors.count ? (
+                            <p className={errorTextClassName}>{fieldErrors.count}</p>
+                        ) : (
+                            <p className="mt-2 text-[0.7rem] font-medium text-[#8a96ad]">
+                                Example: class name 5 with count 5 suggests 5A, 5B, 5C, 5D, 5E.
+                            </p>
+                        )}
+                    </label>
+
+                    <div className="sm:col-span-2 rounded-[1rem] border border-[rgba(18,36,76,0.1)] bg-[#f8fbff] p-4">
+                        <p className="text-[0.75rem] font-bold uppercase tracking-[0.06em] text-[#5e6d8c]">
+                            Suggested by count
+                        </p>
+                        <p className="mt-1 text-[0.8rem] text-[#60708d]">
+                            Use this as reference before entering sections.
+                        </p>
+                        {suggestedSectionsPreview.length > 0 ? (
+                            <div className="mt-3 flex flex-wrap gap-2">
+                                {suggestedSectionsPreview.map((suggestedValue) => (
+                                    <span
+                                        key={suggestedValue}
+                                        className="inline-flex items-center rounded-full border border-[rgba(18,36,76,0.12)] bg-white px-3 py-1 text-[0.75rem] font-semibold text-[#3c4d6c]"
+                                    >
+                                        {suggestedValue}
+                                    </span>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="mt-3 text-[0.75rem] font-medium text-[#8a96ad]">
+                                Enter class name and count to see suggestions.
+                            </p>
+                        )}
+                    </div>
+
                     <label className="block text-[0.82rem] font-bold tracking-tight text-[#4a5a7a] sm:col-span-2">
-                        Sections (Press Enter to add)
+                        Step 3: Sections (Press Enter or use comma)
                         <input
                             className={inputClassName}
                             name="sectionInput"
@@ -526,8 +601,13 @@ export function ClassesForm() {
                             onChange={handleBulkChange}
                             onBlur={addSectionsFromInput}
                             onKeyDown={handleBulkSectionKeyDown}
-                            placeholder="Example: 1A, 1B, 1C"
+                            placeholder="Example: A, B, C"
                         />
+                        {!fieldErrors.sections ? (
+                            <p className="mt-2 text-[0.7rem] font-medium text-[#8a96ad]">
+                                You can enter section letters only (A, B, C) or combined values (1A, 1B).
+                            </p>
+                        ) : null}
                         {bulkFormData.sections.length > 0 ? (
                             <div className="mt-4 flex flex-wrap gap-2">
                                 {bulkFormData.sections.map((section) => (
@@ -550,6 +630,23 @@ export function ClassesForm() {
                                     </span>
                                 ))}
                             </div>
+                        ) : null}
+                        {bulkSectionsPreview.length > 0 && bulkFormData.className.trim() ? (
+                            <>
+                                <p className="mt-3 text-[0.75rem] font-semibold text-[#5e6d8c]">
+                                    Will be created from entered sections:
+                                </p>
+                                <div className="mt-2 flex flex-wrap gap-2">
+                                    {bulkSectionsPreview.map((section) => (
+                                        <span
+                                            key={section}
+                                            className="inline-flex items-center rounded-full border border-[rgba(26,97,255,0.16)] bg-white px-3 py-1 text-[0.75rem] font-semibold text-[#1a61ff]"
+                                        >
+                                            {bulkFormData.className.toUpperCase()} - {section}
+                                        </span>
+                                    ))}
+                                </div>
+                            </>
                         ) : null}
                         {fieldErrors.sections ? (
                             <p className={errorTextClassName}>{fieldErrors.sections}</p>
