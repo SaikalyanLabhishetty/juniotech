@@ -11,7 +11,6 @@ type TeacherDocument = {
     schoolId: string;
     classIds: string[];
     classTeacherClassId?: string;
-    isClassTeacher?: boolean;
 };
 
 type ClassDocument = {
@@ -93,7 +92,6 @@ export async function GET(request: Request) {
                     name: 1,
                     classIds: 1,
                     classTeacherClassId: 1,
-                    isClassTeacher: 1,
                 },
             },
         );
@@ -107,10 +105,6 @@ export async function GET(request: Request) {
 
         const uniqueClassIds = [...new Set(normalizeStringArray(teacher.classIds))];
         const classTeacherClassId = normalizeString(teacher.classTeacherClassId);
-        const classTeacherAssignment =
-            teacher.isClassTeacher && classTeacherClassId
-                ? { classTeacherClassId }
-                : {};
 
         if (uniqueClassIds.length === 0) {
             return NextResponse.json({
@@ -119,7 +113,6 @@ export async function GET(request: Request) {
                     name: teacher.name,
                 },
                 classes: [],
-                ...classTeacherAssignment,
             });
         }
 
@@ -150,14 +143,18 @@ export async function GET(request: Request) {
             const classItem = classMap.get(classId);
             return classItem ? [classItem] : [];
         });
+        const classesWithClassTeacherFlag = orderedClasses.map((classItem) => ({
+            ...classItem,
+            isClassTeacher:
+                classTeacherClassId !== "" && classItem.uid === classTeacherClassId,
+        }));
 
         return NextResponse.json({
             teacher: {
                 uid: teacher.uid,
                 name: teacher.name,
             },
-            classes: orderedClasses,
-            ...classTeacherAssignment,
+            classes: classesWithClassTeacherFlag,
         });
     } catch (error) {
         const message =
