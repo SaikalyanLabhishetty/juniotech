@@ -12,6 +12,11 @@ export const metadata: Metadata = {
   title: "juniotrack | Stay Connected to Your Child's School Journey",
   description:
     "Juniotrack connects parents and teachers with real-time updates on attendance, homework, reports, marks, and announcements.",
+  icons: {
+    icon: "/assets/juniotrack.png",
+    shortcut: "/assets/juniotrack.png",
+    apple: "/assets/juniotrack.png",
+  },
 };
 
 export default function RootLayout({

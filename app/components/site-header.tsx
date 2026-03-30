@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
@@ -283,9 +284,14 @@ export function SiteHeader({
             </div>
           ) : (
             <>
-              <div className="grid h-[2.2rem] w-[2.2rem] place-content-center rounded-[0.7rem] bg-gradient-to-br from-[#1a61ff] to-[#6c8eff] font-semibold text-white shadow-[0_8px_16px_rgba(26,97,255,0.2)]">
-                J
-              </div>
+              <Image
+                src="/assets/juniotrack.png"
+                alt="juniotrack logo"
+                width={35}
+                height={35}
+                className="h-[2.2rem] w-[2.2rem] rounded-[0.7rem] object-cover"
+                priority
+              />
               <div>
                 <p className="m-0 text-[0.95rem] font-bold tracking-tight text-[#0f1f3a]">
                   juniotrack

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -72,9 +73,14 @@ export default function DashboardLayout({
         <div className="flex min-h-screen">
             <aside className="sticky top-0 flex h-screen w-[260px] shrink-0 flex-col border-r border-[rgba(18,36,76,0.06)] bg-white/70 backdrop-blur-[12px] max-md:w-[72px]">
                 <div className="flex h-[64px] items-center gap-3 border-b border-[rgba(18,36,76,0.06)] px-5 max-md:justify-center max-md:px-0">
-                    <div className="grid h-[2.2rem] w-[2.2rem] shrink-0 place-content-center rounded-[0.7rem] bg-gradient-to-br from-[#1a61ff] to-[#6c8eff] text-sm font-semibold text-white shadow-[0_8px_16px_rgba(26,97,255,0.25)]">
-                        J
-                    </div>
+                    <Image
+                        src="/assets/juniotrack.png"
+                        alt="juniotrack logo"
+                        width={35}
+                        height={35}
+                        className="h-[2.2rem] w-[2.2rem] shrink-0 rounded-[0.7rem] object-cover"
+                        priority
+                    />
                     <div className="max-md:hidden">
                         <p className="m-0 text-[0.92rem] font-semibold tracking-[0.01em] text-[#0f1f3a]">
                             juniotrack
