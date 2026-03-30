@@ -721,6 +721,7 @@ export async function POST(request: NextRequest) {
         );
 
         const now = new Date().toISOString();
+        const existingCreatedAt = normalizeString(existingAttendance?.createdAt);
         const attendanceDocument: AttendanceDocument = {
             uid: existingAttendance?.uid ?? randomUUID(),
             date,
@@ -729,7 +730,7 @@ export async function POST(request: NextRequest) {
             organizationId: tokenPayload.uid,
             schoolId,
             studentAttendance: normalizedAttendanceItems,
-            createdAt: existingAttendance?.createdAt ?? requestedCreatedAt ?? now,
+            createdAt: existingCreatedAt || requestedCreatedAt || now,
         };
 
         if (existingAttendance?._id) {
