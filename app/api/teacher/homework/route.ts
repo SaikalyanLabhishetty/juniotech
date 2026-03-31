@@ -39,7 +39,7 @@ type HomeworkStudentItem = {
     studentName?: string;
 };
 
-type HomeworkRecordStatus = "pending" | "completed";
+type HomeworkRecordStatus = "pending" | "in-progress" | "completed";
 
 type HomeworkDocument = {
     uid: string;
@@ -104,6 +104,7 @@ const STUDENTS_COLLECTION = "students";
 const HOMEWORK_COLLECTION = "homework";
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const RECORD_STATUS_PENDING: HomeworkRecordStatus = "pending";
+const RECORD_STATUS_IN_PROGRESS: HomeworkRecordStatus = "in-progress";
 const RECORD_STATUS_COMPLETED: HomeworkRecordStatus = "completed";
 const STUDENT_STATUS_ASSIGNED = "assigned";
 const STUDENT_STATUS_COMPLETED = "completed";
@@ -184,9 +185,17 @@ function normalizeHomeworkStudentItem(value: unknown): HomeworkStudentItem | nul
 }
 
 function normalizeHomeworkRecordStatus(value: unknown): HomeworkRecordStatus {
-    return normalizeString(value).toLowerCase() === RECORD_STATUS_COMPLETED
-        ? RECORD_STATUS_COMPLETED
-        : RECORD_STATUS_PENDING;
+    const normalizedValue = normalizeString(value).toLowerCase();
+
+    if (normalizedValue === RECORD_STATUS_COMPLETED) {
+        return RECORD_STATUS_COMPLETED;
+    }
+
+    if (normalizedValue === RECORD_STATUS_IN_PROGRESS) {
+        return RECORD_STATUS_IN_PROGRESS;
+    }
+
+    return RECORD_STATUS_PENDING;
 }
 
 function canTeacherAccessClass(
@@ -281,6 +290,35 @@ function updateHomeworkStudentStatus(
         ...item,
         status,
     }));
+}
+
+function deriveHomeworkRecordStatus(
+    assignedStudents: HomeworkStudentItem[],
+): HomeworkRecordStatus {
+    if (assignedStudents.length === 0) {
+        return RECORD_STATUS_PENDING;
+    }
+
+    const normalizedStatuses = assignedStudents.map((item) =>
+        normalizeString(item.status).toLowerCase(),
+    );
+    const allAssigned = normalizedStatuses.every(
+        (status) => status === STUDENT_STATUS_ASSIGNED,
+    );
+
+    if (allAssigned) {
+        return RECORD_STATUS_PENDING;
+    }
+
+    const allCompleted = normalizedStatuses.every(
+        (status) => status === STUDENT_STATUS_COMPLETED,
+    );
+
+    if (allCompleted) {
+        return RECORD_STATUS_COMPLETED;
+    }
+
+    return RECORD_STATUS_IN_PROGRESS;
 }
 
 export async function GET(request: NextRequest) {
@@ -1312,7 +1350,6 @@ export async function PUT(request: Request) {
 
         const updatePayload: Record<string, unknown> = {
             updatedAt: new Date().toISOString(),
-            recordStatus: RECORD_STATUS_COMPLETED,
         };
 
         if (hasTitle) {
@@ -1340,15 +1377,11 @@ export async function PUT(request: Request) {
         }
 
         const putAssignedStudents = hasAssignedStudents
-            ? updateHomeworkStudentStatus(
-                  normalizedAssignedStudents,
-                  STUDENT_STATUS_COMPLETED,
-              )
-            : updateHomeworkStudentStatus(
-                  pickHomeworkStudents(existingHomework),
-                  STUDENT_STATUS_COMPLETED,
-              );
+            ? normalizedAssignedStudents
+            : pickHomeworkStudents(existingHomework);
+
         updatePayload.assignedStudents = putAssignedStudents;
+        updatePayload.recordStatus = deriveHomeworkRecordStatus(putAssignedStudents);
 
         await homeworkCollection.updateOne(
             {

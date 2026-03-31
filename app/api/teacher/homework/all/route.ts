@@ -9,7 +9,7 @@ type TeacherDocument = {
     organizationId: string;
 };
 
-type HomeworkRecordStatus = "pending" | "completed";
+type HomeworkRecordStatus = "pending" | "in-progress" | "completed";
 
 type HomeworkDocument = {
     uid: string;
@@ -29,6 +29,7 @@ const USERS_COLLECTION = "users";
 const HOMEWORK_COLLECTION = "homework";
 const PAGE_SIZE = 25;
 const RECORD_STATUS_PENDING: HomeworkRecordStatus = "pending";
+const RECORD_STATUS_IN_PROGRESS: HomeworkRecordStatus = "in-progress";
 const RECORD_STATUS_COMPLETED: HomeworkRecordStatus = "completed";
 
 function normalizeString(value: unknown) {
@@ -53,9 +54,17 @@ function escapeRegExp(input: string) {
 }
 
 function normalizeHomeworkRecordStatus(value: unknown): HomeworkRecordStatus {
-    return normalizeString(value).toLowerCase() === RECORD_STATUS_COMPLETED
-        ? RECORD_STATUS_COMPLETED
-        : RECORD_STATUS_PENDING;
+    const normalizedValue = normalizeString(value).toLowerCase();
+
+    if (normalizedValue === RECORD_STATUS_COMPLETED) {
+        return RECORD_STATUS_COMPLETED;
+    }
+
+    if (normalizedValue === RECORD_STATUS_IN_PROGRESS) {
+        return RECORD_STATUS_IN_PROGRESS;
+    }
+
+    return RECORD_STATUS_PENDING;
 }
 
 export async function GET(request: NextRequest) {
