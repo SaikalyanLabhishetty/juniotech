@@ -36,6 +36,7 @@ type HomeworkStudentItem = {
     studentId: string;
     status: string;
     remarks: string;
+    studentName?: string;
 };
 
 type HomeworkRecordStatus = "pending" | "completed";
@@ -61,6 +62,7 @@ type HomeworkFallbackStudentItem = {
     studentId: string;
     enrollmentNumber: string;
     status: HomeworkRecordStatus;
+    studentName: string;
 };
 
 type HomeworkResponseDocument = Omit<
@@ -226,12 +228,27 @@ function pickHomeworkStudents(homework: HomeworkDocument | null): HomeworkStuden
 }
 
 function buildHomeworkAssignedStudentsFromClass(
-    students: Array<Pick<StudentDocument, "uid" | "enrollmentNumber">>,
+    students: Array<Pick<StudentDocument, "uid" | "enrollmentNumber" | "name">>,
 ) {
     return students.map((student) => ({
         studentId: student.uid,
         enrollmentNumber: student.enrollmentNumber,
         status: RECORD_STATUS_PENDING,
+        studentName: student.name,
+    }));
+}
+
+function attachStudentNamesToHomeworkStudents(
+    assignedStudents: HomeworkStudentItem[],
+    students: Array<Pick<StudentDocument, "uid" | "name">>,
+): HomeworkStudentItem[] {
+    const studentNameById = new Map(
+        students.map((student) => [student.uid, student.name] as const),
+    );
+
+    return assignedStudents.map((item) => ({
+        ...item,
+        studentName: studentNameById.get(item.studentId) ?? "",
     }));
 }
 
@@ -426,9 +443,35 @@ export async function GET(request: NextRequest) {
                       section: "",
                   };
 
+            const assignedStudents = pickHomeworkStudents(homework);
+            const assignedStudentIds = assignedStudents.map((item) => item.studentId);
+            const assignedStudentRecords =
+                assignedStudentIds.length > 0
+                    ? await studentsCollection
+                          .find(
+                              {
+                                  uid: { $in: assignedStudentIds },
+                                  classId: homework.classId,
+                                  organizationId: tokenPayload.uid,
+                                  ...buildSchoolScopeQuery(schoolId),
+                              },
+                              {
+                                  projection: {
+                                      _id: 0,
+                                      uid: 1,
+                                      name: 1,
+                                  },
+                              },
+                          )
+                          .toArray()
+                    : [];
+
             const homeworkWithRecordStatus: HomeworkResponseDocument = {
                 ...homework,
-                assignedStudents: pickHomeworkStudents(homework),
+                assignedStudents: attachStudentNamesToHomeworkStudents(
+                    assignedStudents,
+                    assignedStudentRecords,
+                ),
                 recordStatus: normalizeHomeworkRecordStatus(homework.recordStatus),
             };
 
@@ -533,9 +576,35 @@ export async function GET(request: NextRequest) {
         const classSummary = buildClassSummary(classRecord);
 
         if (homework) {
+            const assignedStudents = pickHomeworkStudents(homework);
+            const assignedStudentIds = assignedStudents.map((item) => item.studentId);
+            const assignedStudentRecords =
+                assignedStudentIds.length > 0
+                    ? await studentsCollection
+                          .find(
+                              {
+                                  uid: { $in: assignedStudentIds },
+                                  classId,
+                                  organizationId: tokenPayload.uid,
+                                  ...buildSchoolScopeQuery(schoolId),
+                              },
+                              {
+                                  projection: {
+                                      _id: 0,
+                                      uid: 1,
+                                      name: 1,
+                                  },
+                              },
+                          )
+                          .toArray()
+                    : [];
+
             const homeworkWithRecordStatus: HomeworkResponseDocument = {
                 ...homework,
-                assignedStudents: pickHomeworkStudents(homework),
+                assignedStudents: attachStudentNamesToHomeworkStudents(
+                    assignedStudents,
+                    assignedStudentRecords,
+                ),
                 recordStatus: normalizeHomeworkRecordStatus(homework.recordStatus),
             };
 
@@ -559,6 +628,7 @@ export async function GET(request: NextRequest) {
                         _id: 0,
                         uid: 1,
                         enrollmentNumber: 1,
+                        name: 1,
                     },
                 },
             )
