@@ -37,6 +37,7 @@ type HomeworkStudentItem = {
     status: string;
     remarks: string;
     studentName?: string;
+    enrollmentNumber?: string;
 };
 
 type HomeworkRecordStatus = "pending" | "in-progress" | "completed";
@@ -247,17 +248,27 @@ function buildHomeworkAssignedStudentsFromClass(
     }));
 }
 
-function attachStudentNamesToHomeworkStudents(
+function attachStudentDetailsToHomeworkStudents(
     assignedStudents: HomeworkStudentItem[],
-    students: Array<Pick<StudentDocument, "uid" | "name">>,
+    students: Array<Pick<StudentDocument, "uid" | "name" | "enrollmentNumber">>,
 ): HomeworkStudentItem[] {
-    const studentNameById = new Map(
-        students.map((student) => [student.uid, student.name] as const),
+    const studentById = new Map(
+        students.map(
+            (student) =>
+                [
+                    student.uid,
+                    {
+                        studentName: student.name,
+                        enrollmentNumber: student.enrollmentNumber,
+                    },
+                ] as const,
+        ),
     );
 
     return assignedStudents.map((item) => ({
         ...item,
-        studentName: studentNameById.get(item.studentId) ?? "",
+        studentName: studentById.get(item.studentId)?.studentName ?? "",
+        enrollmentNumber: studentById.get(item.studentId)?.enrollmentNumber ?? "",
     }));
 }
 
@@ -498,6 +509,7 @@ export async function GET(request: NextRequest) {
                                       _id: 0,
                                       uid: 1,
                                       name: 1,
+                                      enrollmentNumber: 1,
                                   },
                               },
                           )
@@ -506,7 +518,7 @@ export async function GET(request: NextRequest) {
 
             const homeworkWithRecordStatus: HomeworkResponseDocument = {
                 ...homework,
-                assignedStudents: attachStudentNamesToHomeworkStudents(
+                assignedStudents: attachStudentDetailsToHomeworkStudents(
                     assignedStudents,
                     assignedStudentRecords,
                 ),
@@ -631,6 +643,7 @@ export async function GET(request: NextRequest) {
                                       _id: 0,
                                       uid: 1,
                                       name: 1,
+                                      enrollmentNumber: 1,
                                   },
                               },
                           )
@@ -639,7 +652,7 @@ export async function GET(request: NextRequest) {
 
             const homeworkWithRecordStatus: HomeworkResponseDocument = {
                 ...homework,
-                assignedStudents: attachStudentNamesToHomeworkStudents(
+                assignedStudents: attachStudentDetailsToHomeworkStudents(
                     assignedStudents,
                     assignedStudentRecords,
                 ),
