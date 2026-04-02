@@ -31,14 +31,40 @@ type UserDocument = {
 type StudentDocument = {
   uid: string;
   name: string;
+  dob?: string;
+  enrollmentNumber?: string;
+  classId?: string;
   parentId: string;
   organizationId: string;
   schoolId?: string;
   createdAt: string;
 };
 
+type ClassDocument = {
+  uid: string;
+  className?: string;
+  section?: string;
+  organizationId: string;
+  schoolId?: string;
+};
+
+type SchoolDocument = {
+  uid?: string;
+  schoolName?: string;
+  name?: string;
+};
+
+type OrganizationDocument = {
+  uid: string;
+  organizationName?: string;
+  name?: string;
+  schools?: SchoolDocument[];
+};
+
 const COLLECTION_NAME = "users";
 const STUDENTS_COLLECTION_NAME = "students";
+const CLASSES_COLLECTION_NAME = "classes";
+const ORGANIZATION_COLLECTION_NAME = "organization";
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const phonePattern = /^\d{10}$/;
 
@@ -91,7 +117,16 @@ export async function POST(request: Request) {
 
     // Use organizationId as the token uid so all protected org-scoped routes work correctly.
     const schoolId = normalizeString(user.schoolId);
-    let parentStudent: Pick<StudentDocument, "uid" | "name"> | null = null;
+    let parentStudent: Pick<
+      StudentDocument,
+      "uid" | "name" | "dob" | "enrollmentNumber" | "classId" | "schoolId"
+    > | null = null;
+    let parentClass: Pick<ClassDocument, "uid" | "className" | "section"> | null =
+      null;
+    let organization: Pick<
+      OrganizationDocument,
+      "organizationName" | "name" | "schools"
+    > | null = null;
 
     if (user.role === "parent") {
       const studentsCollection =
@@ -106,13 +141,67 @@ export async function POST(request: Request) {
           projection: {
             uid: 1,
             name: 1,
+            dob: 1,
+            enrollmentNumber: 1,
+            classId: 1,
+            schoolId: 1,
           },
           sort: {
             createdAt: -1,
           },
         },
       );
+
+      const classId = normalizeString(parentStudent?.classId);
+      const parentStudentSchoolId = normalizeString(parentStudent?.schoolId) || schoolId;
+
+      if (classId) {
+        const classesCollection =
+          database.collection<ClassDocument>(CLASSES_COLLECTION_NAME);
+        parentClass = await classesCollection.findOne(
+          {
+            uid: classId,
+            organizationId: user.organizationId,
+            ...buildSchoolScopeQuery(parentStudentSchoolId),
+          },
+          {
+            projection: {
+              uid: 1,
+              className: 1,
+              section: 1,
+            },
+          },
+        );
+      }
+
+      const organizationsCollection = database.collection<OrganizationDocument>(
+        ORGANIZATION_COLLECTION_NAME,
+      );
+      organization = await organizationsCollection.findOne(
+        { uid: user.organizationId },
+        {
+          projection: {
+            organizationName: 1,
+            name: 1,
+            schools: 1,
+          },
+        },
+      );
     }
+
+    const organizationName =
+      normalizeString(organization?.organizationName) ||
+      normalizeString(organization?.name);
+    const resolvedSchoolId = normalizeString(parentStudent?.schoolId) || schoolId;
+    const matchingSchool = organization?.schools?.find(
+      (school) => normalizeString(school.uid) === resolvedSchoolId,
+    );
+    const schoolName =
+      normalizeString(matchingSchool?.schoolName) ||
+      normalizeString(matchingSchool?.name);
+    const className = normalizeString(parentClass?.className);
+    const section = normalizeString(parentClass?.section);
+    const classAndSection = className && section ? `${className}-${section}` : "";
 
     const accessToken = createAccessToken({
       email: user.email,
@@ -136,6 +225,12 @@ export async function POST(request: Request) {
             ? {
                 student_name: parentStudent?.name ?? "",
                 student_uid: parentStudent?.uid ?? "",
+                dob: parentStudent?.dob ?? "",
+                enrollment_number: parentStudent?.enrollmentNumber ?? "",
+                school_name: schoolName,
+                organization_name: organizationName,
+                class_and_section: classAndSection,
+                classId: parentStudent?.classId ?? "",
               }
             : {}),
         },
